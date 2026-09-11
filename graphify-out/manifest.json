@@ -1,0 +1,127 @@
+{
+  "package.json": {
+    "mtime": 1789145327.6762154,
+    "ast_hash": "06d0c2ef17ed25f11dde6130c10fda42",
+    "semantic_hash": "06d0c2ef17ed25f11dde6130c10fda42"
+  },
+  "src/App.tsx": {
+    "mtime": 1789140917.9525707,
+    "ast_hash": "15719850df2e8369c35776ede5d31b0b",
+    "semantic_hash": "15719850df2e8369c35776ede5d31b0b"
+  },
+  "src/game/HUD.tsx": {
+    "mtime": 1789144038.8506074,
+    "ast_hash": "5aa9cc58fba26e9aad10cbee7406a5b8",
+    "semantic_hash": "5aa9cc58fba26e9aad10cbee7406a5b8"
+  },
+  "src/game/MountainScene.tsx": {
+    "mtime": 1789147578.2077112,
+    "ast_hash": "f81e00c28a88f6e46329c3bd7730a6e8",
+    "semantic_hash": "f81e00c28a88f6e46329c3bd7730a6e8"
+  },
+  "src/game/Player.tsx": {
+    "mtime": 1789147027.1559415,
+    "ast_hash": "e420f51c60a815b6d8d0e4916f4fcf24",
+    "semantic_hash": "e420f51c60a815b6d8d0e4916f4fcf24"
+  },
+  "src/game/audio.ts": {
+    "mtime": 1789143892.4370494,
+    "ast_hash": "7dc547fadeaa7bb657c3c981df260ab0",
+    "semantic_hash": "7dc547fadeaa7bb657c3c981df260ab0"
+  },
+  "src/game/store.ts": {
+    "mtime": 1789143976.2283683,
+    "ast_hash": "cd8fa8b5c2d838870ae1b6c1434c7d77",
+    "semantic_hash": "cd8fa8b5c2d838870ae1b6c1434c7d77"
+  },
+  "src/game/terrain.ts": {
+    "mtime": 1789144898.218627,
+    "ast_hash": "664d52f49d80b5f464647b48d52d6426",
+    "semantic_hash": "664d52f49d80b5f464647b48d52d6426"
+  },
+  "src/main.tsx": {
+    "mtime": 1789140843.4376543,
+    "ast_hash": "87a14170fb160b764721b7e71785aa8c",
+    "semantic_hash": "87a14170fb160b764721b7e71785aa8c"
+  },
+  "src/screens/MainMenu.tsx": {
+    "mtime": 1789141440.1032472,
+    "ast_hash": "0991fe4567cf6866375d9276c078713f",
+    "semantic_hash": "0991fe4567cf6866375d9276c078713f"
+  },
+  "src/vite-env.d.ts": {
+    "mtime": 1789140843.4375935,
+    "ast_hash": "0352474ba2918efe13895edbc3780d94",
+    "semantic_hash": "0352474ba2918efe13895edbc3780d94"
+  },
+  "tsconfig.json": {
+    "mtime": 1789140837.2673533,
+    "ast_hash": "eb4ea177f4a11557e35764c66ffcca51",
+    "semantic_hash": "eb4ea177f4a11557e35764c66ffcca51"
+  },
+  "vite.config.ts": {
+    "mtime": 1789140837.2415454,
+    "ast_hash": "bd3db539a07861af5e9f08111040330c",
+    "semantic_hash": "bd3db539a07861af5e9f08111040330c"
+  },
+  "src/game/Hiker.tsx": {
+    "mtime": 1789144911.9236412,
+    "ast_hash": "d983037930aa72bb3217dad7273b5627",
+    "semantic_hash": "d983037930aa72bb3217dad7273b5627"
+  },
+  "src/game/playerRef.ts": {
+    "mtime": 1789141415.892793,
+    "ast_hash": "1eb63e3bb1515b2f2c91553d295fd1a7",
+    "semantic_hash": "1eb63e3bb1515b2f2c91553d295fd1a7"
+  },
+  "src/game/Animals.tsx": {
+    "mtime": 1789144922.524217,
+    "ast_hash": "923cd4f652b120b68a5e4c0e06ca5f32",
+    "semantic_hash": "923cd4f652b120b68a5e4c0e06ca5f32"
+  },
+  "src/game/River.tsx": {
+    "mtime": 1789144989.4111798,
+    "ast_hash": "fb0caf0bc5475785e47e58bc89f925a2",
+    "semantic_hash": "fb0caf0bc5475785e47e58bc89f925a2"
+  },
+  "src/game/Sun.tsx": {
+    "mtime": 1789141876.0184562,
+    "ast_hash": "624922c3a3c1c5030d89eeb528457725",
+    "semantic_hash": "624922c3a3c1c5030d89eeb528457725"
+  },
+  "src/game/Trees.tsx": {
+    "mtime": 1789147553.2172227,
+    "ast_hash": "f5d0c31394cd0e598c95c20ec1cb218a",
+    "semantic_hash": "f5d0c31394cd0e598c95c20ec1cb218a"
+  },
+  "src/game/Clouds.tsx": {
+    "mtime": 1789143674.4844198,
+    "ast_hash": "d327bb81f32f40fb2a274acc82368795",
+    "semantic_hash": "d327bb81f32f40fb2a274acc82368795"
+  },
+  "src/game/Flowers.tsx": {
+    "mtime": 1789144936.954399,
+    "ast_hash": "97d57f245455dcdf56d10e17d0cb8bd1",
+    "semantic_hash": "97d57f245455dcdf56d10e17d0cb8bd1"
+  },
+  "src/game/Snowfall.tsx": {
+    "mtime": 1789146980.5010104,
+    "ast_hash": "ffb1ca49f7cd7395b36cba6c9eb6cec8",
+    "semantic_hash": "ffb1ca49f7cd7395b36cba6c9eb6cec8"
+  },
+  "eslint.config.js": {
+    "mtime": 1789143426.3809452,
+    "ast_hash": "efeccc95b44522a809a470843c60d3b9",
+    "semantic_hash": "efeccc95b44522a809a470843c60d3b9"
+  },
+  "src/game/Rockfall.tsx": {
+    "mtime": 1789146942.473403,
+    "ast_hash": "d2f774b770eede89619941e865c8db09",
+    "semantic_hash": "d2f774b770eede89619941e865c8db09"
+  },
+  "src/game/modelKit.ts": {
+    "mtime": 1789144911.9216793,
+    "ast_hash": "f61435e242d6bef9d516eb0e22a93217",
+    "semantic_hash": "f61435e242d6bef9d516eb0e22a93217"
+  }
+}

@@ -1,0 +1,404 @@
+{
+  "communities": {
+    "0": [
+      "src_game_animals",
+      "src_game_animals_bird",
+      "src_game_animals_birdflock",
+      "src_game_animals_birds",
+      "src_game_animals_deer",
+      "src_game_animals_deer_anchors",
+      "src_game_animals_deerherd",
+      "src_game_animals_flocks",
+      "src_game_animals_picktarget",
+      "src_game_clouds",
+      "src_game_clouds_clouds",
+      "src_game_hiker",
+      "src_game_hiker_hiker",
+      "src_game_modelkit",
+      "src_game_modelkit_lerpangle",
+      "src_game_modelkit_matcache",
+      "src_game_modelkit_matextra",
+      "src_game_modelkit_sharedmat",
+      "src_game_modelkit_useshadows",
+      "src_game_mountainscene",
+      "src_game_mountainscene_camp",
+      "src_game_mountainscene_campfire",
+      "src_game_mountainscene_envsetup",
+      "src_game_mountainscene_item_colors",
+      "src_game_mountainscene_lootmesh",
+      "src_game_mountainscene_props",
+      "src_game_mountainscene_signpost",
+      "src_game_mountainscene_wavingflag",
+      "src_game_playerref",
+      "src_game_playerref_playerstate",
+      "src_game_river_bridge",
+      "src_game_snowfall",
+      "src_game_snowfall_footprints",
+      "src_game_snowfall_snowfall",
+      "src_game_terrain_clampworld",
+      "src_game_terrain_snow_line",
+      "src_game_terrain_trailmarkerpoints"
+    ],
+    "1": [
+      "src_app",
+      "src_app_app",
+      "src_game_hud",
+      "src_game_hud_bar",
+      "src_game_hud_directionhint",
+      "src_game_hud_hud",
+      "src_game_hud_minimap",
+      "src_game_hud_toastmessage",
+      "src_game_hud_weather_icon",
+      "src_game_mountainscene_mountainscene",
+      "src_game_mountainscene_skyrig",
+      "src_game_store",
+      "src_game_store_clamp100",
+      "src_game_store_default_inventory",
+      "src_game_store_formatduration",
+      "src_game_store_inventory",
+      "src_game_store_mountainstate",
+      "src_game_store_screen",
+      "src_game_store_spawn",
+      "src_game_store_spawny",
+      "src_game_store_usemountainstore",
+      "src_game_store_weather",
+      "src_game_store_weathers",
+      "src_game_sun",
+      "src_game_sun_sun",
+      "src_game_terrain_bridge",
+      "src_game_terrain_checkpoints",
+      "src_game_terrain_itemid",
+      "src_game_terrain_shortcut_a",
+      "src_game_terrain_shortcut_b",
+      "src_game_terrain_trail",
+      "src_main",
+      "src_screens_mainmenu",
+      "src_screens_mainmenu_mainmenu"
+    ],
+    "2": [
+      "src_game_flowers",
+      "src_game_flowers_edelweissflower",
+      "src_game_flowers_edelweisspatch",
+      "src_game_flowers_meadowflowers",
+      "src_game_modelkit_mulberry32",
+      "src_game_mountainscene_terrainmesh",
+      "src_game_river",
+      "src_game_river_foam",
+      "src_game_river_river",
+      "src_game_river_watersurface",
+      "src_game_terrain",
+      "src_game_terrain_all_paths",
+      "src_game_terrain_checkpoint",
+      "src_game_terrain_disttoseg",
+      "src_game_terrain_disttotrail",
+      "src_game_terrain_edelweiss",
+      "src_game_terrain_forks",
+      "src_game_terrain_getbaseheight",
+      "src_game_terrain_getheight",
+      "src_game_terrain_getriverdepth",
+      "src_game_terrain_getslope",
+      "src_game_terrain_jump_speed",
+      "src_game_terrain_lootspot",
+      "src_game_terrain_pickup_radius",
+      "src_game_terrain_rivercenterx",
+      "src_game_terrain_smoothstep",
+      "src_game_terrain_sprint_speed",
+      "src_game_terrain_walk_speed",
+      "src_game_terrain_world_bound",
+      "src_game_terrain_world_size"
+    ],
+    "3": [
+      "ref_dom",
+      "ref_dom_iterable",
+      "ref_es2020",
+      "ref_src",
+      "ref_vite_client",
+      "ref_vite_config_ts",
+      "tsconfig",
+      "tsconfig_compileroptions",
+      "tsconfig_compileroptions_allowimportingtsextensions",
+      "tsconfig_compileroptions_forceconsistentcasinginfilenames",
+      "tsconfig_compileroptions_isolatedmodules",
+      "tsconfig_compileroptions_jsx",
+      "tsconfig_compileroptions_lib",
+      "tsconfig_compileroptions_module",
+      "tsconfig_compileroptions_moduledetection",
+      "tsconfig_compileroptions_moduleresolution",
+      "tsconfig_compileroptions_noemit",
+      "tsconfig_compileroptions_nofallthroughcasesinswitch",
+      "tsconfig_compileroptions_nounusedlocals",
+      "tsconfig_compileroptions_nounusedparameters",
+      "tsconfig_compileroptions_paths",
+      "tsconfig_compileroptions_skiplibcheck",
+      "tsconfig_compileroptions_strict",
+      "tsconfig_compileroptions_target",
+      "tsconfig_compileroptions_types",
+      "tsconfig_compileroptions_usedefineforclassfields",
+      "tsconfig_include"
+    ],
+    "4": [
+      "eslint",
+      "eslint_js",
+      "eslint_plugin_react_hooks",
+      "package_devdependencies",
+      "package_devdependencies_eslint",
+      "package_devdependencies_eslint_js",
+      "package_devdependencies_eslint_plugin_react_hooks",
+      "package_devdependencies_tailwindcss",
+      "package_devdependencies_tailwindcss_vite",
+      "package_devdependencies_types_react",
+      "package_devdependencies_types_react_dom",
+      "package_devdependencies_types_three",
+      "package_devdependencies_typescript",
+      "package_devdependencies_typescript_eslint",
+      "package_devdependencies_vite",
+      "package_devdependencies_vitejs_plugin_react",
+      "tailwindcss",
+      "tailwindcss_vite",
+      "types_react",
+      "types_react_dom",
+      "types_three",
+      "typescript",
+      "typescript_eslint",
+      "vite",
+      "vitejs_plugin_react"
+    ],
+    "5": [
+      "package",
+      "package_dependencies",
+      "package_dependencies_react",
+      "package_dependencies_react_dom",
+      "package_dependencies_react_three_drei",
+      "package_dependencies_react_three_fiber",
+      "package_dependencies_three",
+      "package_dependencies_zustand",
+      "package_description",
+      "package_name",
+      "package_private",
+      "package_scripts",
+      "package_scripts_build",
+      "package_scripts_dev",
+      "package_scripts_lint",
+      "package_scripts_preview",
+      "package_scripts_typecheck",
+      "package_type",
+      "package_version",
+      "react",
+      "react_dom",
+      "react_three_drei",
+      "react_three_fiber",
+      "three",
+      "zustand"
+    ],
+    "6": [
+      "src_game_audio",
+      "src_game_audio_ensurectx",
+      "src_game_audio_muted",
+      "src_game_audio_playcheckpoint",
+      "src_game_audio_playlose",
+      "src_game_audio_playpickup",
+      "src_game_audio_playrock",
+      "src_game_audio_playstep",
+      "src_game_audio_playtent",
+      "src_game_audio_playwin",
+      "src_game_audio_tone",
+      "src_game_audio_updatewind",
+      "src_game_player",
+      "src_game_player_player",
+      "src_game_player_storminess",
+      "src_game_rockfall",
+      "src_game_rockfall_fallingrock",
+      "src_game_rockfall_rockfall",
+      "src_game_rockfall_rockfalldanger"
+    ],
+    "7": [
+      "src_game_terrain_loot_spots",
+      "src_game_terrain_tree_line",
+      "src_game_trees",
+      "src_game_trees_birches",
+      "src_game_trees_dummycolor",
+      "src_game_trees_grasstufts",
+      "src_game_trees_neartrailorcamp",
+      "src_game_trees_pinetint",
+      "src_game_trees_placeat",
+      "src_game_trees_placer",
+      "src_game_trees_rocks",
+      "src_game_trees_scatter",
+      "src_game_trees_shrubs",
+      "src_game_trees_snowpallor",
+      "src_game_trees_spot",
+      "src_game_trees_trees",
+      "src_game_trees_useinstanced",
+      "src_game_trees_yawoff"
+    ],
+    "8": [
+      "vite_config",
+      "vite_config_manualchunks"
+    ],
+    "9": [
+      "eslint_config"
+    ],
+    "10": [
+      "src_vite_env_d"
+    ]
+  },
+  "cohesion": {
+    "0": 0.11411411411411411,
+    "1": 0.09803921568627451,
+    "2": 0.12643678160919541,
+    "3": 0.07407407407407407,
+    "4": 0.08,
+    "5": 0.08,
+    "6": 0.26900584795321636,
+    "7": 0.24183006535947713,
+    "8": 1.0,
+    "9": 1.0,
+    "10": 1.0
+  },
+  "gods": [
+    {
+      "id": "src_game_terrain_getheight",
+      "label": "getHeight()",
+      "degree": 31
+    },
+    {
+      "id": "src_game_store_usemountainstore",
+      "label": "useMountainStore",
+      "degree": 19
+    },
+    {
+      "id": "tsconfig_compileroptions",
+      "label": "compilerOptions",
+      "degree": 19
+    },
+    {
+      "id": "src_game_terrain_rivercenterx",
+      "label": "riverCenterX()",
+      "degree": 13
+    },
+    {
+      "id": "src_game_player_player",
+      "label": "Player()",
+      "degree": 12
+    },
+    {
+      "id": "src_game_modelkit_sharedmat",
+      "label": "sharedMat()",
+      "degree": 10
+    },
+    {
+      "id": "src_game_modelkit_useshadows",
+      "label": "useShadows()",
+      "degree": 10
+    },
+    {
+      "id": "src_game_terrain_disttotrail",
+      "label": "distToTrail()",
+      "degree": 9
+    },
+    {
+      "id": "src_game_audio_tone",
+      "label": "tone()",
+      "degree": 9
+    },
+    {
+      "id": "src_game_trees_birches",
+      "label": "Birches()",
+      "degree": 8
+    }
+  ],
+  "surprises": [
+    {
+      "source": "Minimap()",
+      "target": "riverCenterX()",
+      "source_files": [
+        "src/game/HUD.tsx",
+        "src/game/terrain.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities; peripheral node `Minimap()` unexpectedly reaches hub `riverCenterX()`"
+    },
+    {
+      "source": "Deer()",
+      "target": "getHeight()",
+      "source_files": [
+        "src/game/Animals.tsx",
+        "src/game/terrain.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "pickTarget()",
+      "target": "getHeight()",
+      "source_files": [
+        "src/game/Animals.tsx",
+        "src/game/terrain.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "pickTarget()",
+      "target": "riverCenterX()",
+      "source_files": [
+        "src/game/Animals.tsx",
+        "src/game/terrain.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "Bridge()",
+      "target": "getHeight()",
+      "source_files": [
+        "src/game/River.tsx",
+        "src/game/terrain.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `getHeight()` connect `Community 2` to `Community 0`, `Community 1`, `Community 6`, `Community 7`?",
+      "why": "High betweenness centrality (0.046) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `devDependencies` connect `Community 4` to `Community 5`?",
+      "why": "High betweenness centrality (0.037) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `useMountainStore` connect `Community 1` to `Community 0`, `Community 2`, `Community 6`?",
+      "why": "High betweenness centrality (0.024) - this node is a cross-community bridge."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `BirdFlock`, `MatExtra`, `Inventory` to the rest of the system?",
+      "why": "69 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 0` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.11411411411411411 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 1` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.09803921568627451 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 2` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.12643678160919541 - nodes in this community are weakly interconnected."
+    }
+  ]
+}
