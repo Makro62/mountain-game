@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { getHeight } from "./terrain";
+import { getVoxelTop } from "./voxel";
 import { useMountainStore } from "./store";
 import { playerState } from "./playerRef";
 import { playRock } from "./audio";
@@ -84,7 +85,7 @@ export function Rockfall() {
       r.pos.x += r.vel.x * dt;
       r.pos.y += r.vel.y * dt;
       r.pos.z += r.vel.z * dt;
-      const ground = getHeight(r.pos.x, r.pos.z) + 0.5;
+      const ground = getVoxelTop(r.pos.x, r.pos.z, useMountainStore.getState().edits) + 0.5;
       if (r.pos.y <= ground) {
         r.pos.y = ground;
         r.vel.y *= -0.3;
@@ -123,7 +124,7 @@ export function Rockfall() {
           visible={false}
           castShadow
         >
-          <dodecahedronGeometry args={[0.55, 0]} />
+          <boxGeometry args={[0.9, 0.9, 0.9]} />
           <meshStandardMaterial color="#57534e" roughness={1} />
         </mesh>
       ))}

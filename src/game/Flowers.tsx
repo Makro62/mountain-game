@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import * as THREE from "three";
 import { EDELWEISS, WORLD_BOUND, distToTrail, getHeight, riverCenterX } from "./terrain";
+import { blockTopNatural } from "./voxel";
 import { mulberry32 } from "./modelKit";
 import { useMountainStore } from "./store";
 
@@ -17,19 +18,19 @@ export function MeadowFlowers() {
       if (Math.abs(x - riverCenterX(z)) < 6) continue;
       const h = getHeight(x, z);
       if (h > 20) continue;
-      out.push({ x, y: h, z, s: 0.7 + rand() * 0.7, c: palette[Math.floor(rand() * palette.length)] });
+      out.push({ x, y: blockTopNatural(x, z), z, s: 0.7 + rand() * 0.7, c: palette[Math.floor(rand() * palette.length)] });
     }
     return out;
   }, []);
 
   const { stems, heads } = useMemo(() => {
     const stemMesh = new THREE.InstancedMesh(
-      new THREE.CylinderGeometry(0.03, 0.04, 0.5, 5),
+      new THREE.BoxGeometry(0.08, 0.5, 0.08),
       new THREE.MeshStandardMaterial({ color: "#15803d", roughness: 1 }),
       Math.max(1, spots.length)
     );
     const headMesh = new THREE.InstancedMesh(
-      new THREE.IcosahedronGeometry(0.12, 0),
+      new THREE.BoxGeometry(0.22, 0.22, 0.22),
       new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.7 }),
       Math.max(1, spots.length)
     );
@@ -63,13 +64,13 @@ export function MeadowFlowers() {
 }
 
 function EdelweissFlower({ x, z, taken }: { x: number; z: number; taken: boolean }) {
-  const y = getHeight(x, z);
+  const y = blockTopNatural(x, z);
   if (taken) return null;
   return (
     <group position={[x, y, z]}>
       {/* Batang */}
       <mesh position={[0, 0.2, 0]}>
-        <cylinderGeometry args={[0.03, 0.04, 0.4, 5]} />
+        <boxGeometry args={[0.08, 0.4, 0.08]} />
         <meshStandardMaterial color="#4d7c0f" roughness={1} />
       </mesh>
       {/* Daun */}
@@ -91,12 +92,12 @@ function EdelweissFlower({ x, z, taken }: { x: number; z: number; taken: boolean
       })}
       {/* Tengah kuning */}
       <mesh position={[0, 0.45, 0]}>
-        <sphereGeometry args={[0.07, 8, 8]} />
+        <boxGeometry args={[0.14, 0.14, 0.14]} />
         <meshStandardMaterial color="#facc15" emissive="#facc15" emissiveIntensity={0.5} />
       </mesh>
       {/* Penanda kilau agar terlihat dari jauh */}
       <mesh position={[0, 0.9, 0]}>
-        <sphereGeometry args={[0.09, 8, 8]} />
+        <boxGeometry args={[0.16, 0.16, 0.16]} />
         <meshStandardMaterial color="#fefce8" emissive="#fef08a" emissiveIntensity={1.4} transparent opacity={0.9} />
       </mesh>
     </group>

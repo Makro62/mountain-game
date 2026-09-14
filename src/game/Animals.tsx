@@ -2,7 +2,8 @@ import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { lerpAngle, sharedMat, useShadows } from "./modelKit";
-import { clampWorld, getHeight, riverCenterX } from "./terrain";
+import { clampWorld, riverCenterX } from "./terrain";
+import { blockTopNatural } from "./voxel";
 import { playerState } from "./playerRef";
 
 /* ---------------- Burung ---------------- */
@@ -53,12 +54,12 @@ function Bird({ flock }: { flock: BirdFlock }) {
 
   return (
     <group ref={root}>
-      {/* Badan aerodinamis + ekor kipas */}
-      <mesh rotation={[Math.PI / 2, 0, 0]} material={sharedMat("#1f2937")}>
-        <capsuleGeometry args={[0.14, 0.6, 4, 8]} />
+      {/* Badan kotak + ekor kipas */}
+      <mesh material={sharedMat("#1f2937")}>
+        <boxGeometry args={[0.3, 0.28, 0.9]} />
       </mesh>
-      <mesh position={[0, 0.02, -0.55]} rotation={[-Math.PI / 2, 0, 0]} material={sharedMat("#374151")}>
-        <coneGeometry args={[0.22, 0.4, 4]} />
+      <mesh position={[0, 0.02, -0.6]} material={sharedMat("#374151")}>
+        <boxGeometry args={[0.3, 0.1, 0.35]} />
       </mesh>
       <mesh ref={wingL} position={[-0.1, 0.08, -0.55]} rotation={[0, 0.5, 0]} material={sharedMat("#374151")}>
         <boxGeometry args={[0.7, 0.05, 1.1]} />
@@ -94,7 +95,7 @@ function pickTarget(ax: number, az: number): [number, number] {
     const tx = clampWorld(ax + (Math.random() * 2 - 1) * 12);
     const tz = clampWorld(az + (Math.random() * 2 - 1) * 12);
     if (Math.abs(tx - riverCenterX(tz)) < 10) continue;
-    if (getHeight(tx, tz) > 26) continue;
+    if (blockTopNatural(tx, tz) > 26) continue;
     return [tx, tz];
   }
   return [ax, az];
@@ -116,7 +117,7 @@ function Deer({ anchor }: { anchor: [number, number] }) {
     yaw: 0,
   });
 
-  const startY = useMemo(() => getHeight(anchor[0], anchor[1]), [anchor]);
+  const startY = useMemo(() => blockTopNatural(anchor[0], anchor[1]), [anchor]);
 
   useShadows(root);
 
@@ -169,7 +170,7 @@ function Deer({ anchor }: { anchor: [number, number] }) {
       }
     }
 
-    g.position.set(s.x, getHeight(s.x, s.z), s.z);
+    g.position.set(s.x, blockTopNatural(s.x, s.z), s.z);
     g.rotation.y = s.yaw;
     if (speed > 0) s.phase += dt * (speed > 2 ? 11 : 7);
     const swing = speed > 0 ? Math.sin(s.phase) * 0.5 : 0;
@@ -193,15 +194,15 @@ function Deer({ anchor }: { anchor: [number, number] }) {
 
   return (
     <group ref={root} position={[anchor[0], startY, anchor[1]]}>
-      {/* Badan kapsul + belang punggung + pantat putih */}
-      <mesh position={[0, 0.92, 0]} rotation={[Math.PI / 2, 0, 0]} material={sharedMat("#92400e")}>
-        <capsuleGeometry args={[0.26, 0.7, 4, 12]} />
+      {/* Badan kotak + belang punggung + pantat putih */}
+      <mesh position={[0, 0.92, 0]} material={sharedMat("#92400e")}>
+        <boxGeometry args={[0.5, 0.5, 1.2]} />
       </mesh>
-      <mesh position={[0, 1.16, -0.05]} material={sharedMat("#57534e")}>
+      <mesh position={[0, 1.18, -0.05]} material={sharedMat("#57534e")}>
         <boxGeometry args={[0.1, 0.05, 0.7]} />
       </mesh>
-      <mesh position={[0, 0.82, -0.5]} material={sharedMat("#fef3c7")}>
-        <sphereGeometry args={[0.18, 10, 10]} />
+      <mesh position={[0, 0.82, -0.62]} material={sharedMat("#fef3c7")}>
+        <boxGeometry args={[0.34, 0.34, 0.12]} />
       </mesh>
       {/* 4 kaki meruncing + kuku */}
       {[
@@ -212,17 +213,17 @@ function Deer({ anchor }: { anchor: [number, number] }) {
       ].map((p, i) => (
         <group key={i} ref={setLeg(i)} position={p as [number, number, number]}>
           <mesh position={[0, -0.38, 0]} material={sharedMat("#78350f")}>
-            <cylinderGeometry args={[0.06, 0.09, 0.76, 7]} />
+            <boxGeometry args={[0.14, 0.76, 0.14]} />
           </mesh>
-          <mesh position={[0, -0.76, 0.02]} material={sharedMat("#292524")}>
-            <cylinderGeometry args={[0.07, 0.07, 0.1, 7]} />
+          <mesh position={[0, -0.78, 0.02]} material={sharedMat("#292524")}>
+            <boxGeometry args={[0.16, 0.12, 0.16]} />
           </mesh>
         </group>
       ))}
       {/* Leher + kepala + moncong + telinga + tanduk bercabang */}
       <group ref={neck} position={[0, 1.05, 0.45]}>
         <mesh position={[0, 0.22, 0.08]} rotation={[-0.3, 0, 0]} material={sharedMat("#92400e")}>
-          <cylinderGeometry args={[0.09, 0.12, 0.55, 8]} />
+          <boxGeometry args={[0.2, 0.55, 0.2]} />
         </mesh>
         <mesh position={[0, 0.48, 0.2]} material={sharedMat("#92400e")}>
           <boxGeometry args={[0.2, 0.24, 0.38]} />
@@ -232,23 +233,23 @@ function Deer({ anchor }: { anchor: [number, number] }) {
         </mesh>
         {[-0.11, 0.11].map((x, i) => (
           <mesh key={`ear${i}`} position={[x, 0.62, 0.12]} rotation={[0, 0, x > 0 ? -0.4 : 0.4]} material={sharedMat("#78350f")}>
-            <coneGeometry args={[0.05, 0.16, 6]} />
+            <boxGeometry args={[0.1, 0.18, 0.06]} />
           </mesh>
         ))}
         {[-0.07, 0.07].map((x, i) => (
           <group key={`ant${i}`} position={[x, 0.6, 0.15]} rotation={[0, 0, x > 0 ? -0.3 : 0.3]}>
             <mesh position={[0, 0.18, 0]} material={sharedMat("#e7e5e4", 0.8)}>
-              <cylinderGeometry args={[0.018, 0.025, 0.36, 5]} />
+              <boxGeometry args={[0.05, 0.36, 0.05]} />
             </mesh>
             <mesh position={[x > 0 ? 0.05 : -0.05, 0.3, 0]} rotation={[0, 0, x > 0 ? -0.7 : 0.7]} material={sharedMat("#e7e5e4", 0.8)}>
-              <cylinderGeometry args={[0.012, 0.016, 0.18, 5]} />
+              <boxGeometry args={[0.04, 0.18, 0.04]} />
             </mesh>
           </group>
         ))}
       </group>
       {/* Ekor (tegak saat kabur) */}
-      <mesh ref={tail} position={[0, 1.0, -0.55]} rotation={[0.6, 0, 0]} material={sharedMat("#fef3c7")}>
-        <coneGeometry args={[0.09, 0.28, 6]} />
+      <mesh ref={tail} position={[0, 1.0, -0.62]} rotation={[0.6, 0, 0]} material={sharedMat("#fef3c7")}>
+        <boxGeometry args={[0.16, 0.28, 0.1]} />
       </mesh>
     </group>
   );

@@ -11,6 +11,7 @@ import {
   riverCenterX,
 } from "./terrain";
 import { mulberry32 } from "./modelKit";
+import { blockTopNatural } from "./voxel";
 
 interface Spot {
   x: number;
@@ -41,7 +42,7 @@ function scatter(count: number, seed: number, accept: (x: number, z: number) => 
     const x = (rand() * 2 - 1) * (WORLD_BOUND - 5);
     const z = (rand() * 2 - 1) * (WORLD_BOUND - 5);
     if (!accept(x, z)) continue;
-    out.push({ x, y: getHeight(x, z), z, s: 0.7 + rand() * 0.7, rot: rand() * Math.PI * 2, tint: rand() });
+    out.push({ x, y: blockTopNatural(x, z), z, s: 0.7 + rand() * 0.7, rot: rand() * Math.PI * 2, tint: rand() });
   }
   return out;
 }
@@ -124,14 +125,14 @@ export function Trees() {
 
   const roots = useInstanced(
     spots,
-    useMemo(() => new THREE.ConeGeometry(0.5, 0.6, 7), []),
+    useMemo(() => new THREE.BoxGeometry(0.7, 0.5, 0.7), []),
     useMemo(() => new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 1 }), []),
     placeAt(0.25),
     (m, s, i) => m.setColorAt(i, dummyColor.setHSL(0.06, 0.4, 0.14 + s.tint * 0.06))
   );
   const trunks = useInstanced(
     spots,
-    useMemo(() => new THREE.CylinderGeometry(0.2, 0.32, 2.4, 7), []),
+    useMemo(() => new THREE.BoxGeometry(0.5, 2.4, 0.5), []),
     useMemo(() => new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 1 }), []),
     placeAt(1.2),
     (m, s, i) => m.setColorAt(i, dummyColor.setHSL(0.07, 0.42, 0.16 + s.tint * 0.07))
@@ -148,7 +149,7 @@ export function Trees() {
     useInstanced(
       spots,
       // eslint-disable-next-line react-hooks/rules-of-hooks
-      useMemo(() => new THREE.ConeGeometry(L.r, L.h, 8), [L.r, L.h]),
+      useMemo(() => new THREE.BoxGeometry(L.r * 2, L.h * 0.8, L.r * 2), [L.r, L.h]),
       // eslint-disable-next-line react-hooks/rules-of-hooks
       useMemo(() => new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 1 }), []),
       (m, s, dummy, i) => {
@@ -163,7 +164,7 @@ export function Trees() {
   );
   const spike = useInstanced(
     spots,
-    useMemo(() => new THREE.ConeGeometry(0.22, 1.1, 6), []),
+    useMemo(() => new THREE.BoxGeometry(0.4, 1.1, 0.4), []),
     useMemo(() => new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 1 }), []),
     placeAt(6.9),
     pineTint(0.3, 0.5, 0.24)
@@ -190,7 +191,7 @@ export function Birches() {
   );
   const trunks = useInstanced(
     spots,
-    useMemo(() => new THREE.CylinderGeometry(0.16, 0.24, 2.8, 7), []),
+    useMemo(() => new THREE.BoxGeometry(0.4, 2.8, 0.4), []),
     useMemo(() => new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.9 }), []),
     placeAt(1.4),
     (m, s, i) => m.setColorAt(i, dummyColor.setHSL(0.1, 0.08 + s.tint * 0.05, 0.82 + s.tint * 0.08))
@@ -201,7 +202,7 @@ export function Birches() {
     useInstanced(
       spots,
       // eslint-disable-next-line react-hooks/rules-of-hooks
-      useMemo(() => new THREE.CylinderGeometry(0.045, 0.07, 1.7, 5), []),
+      useMemo(() => new THREE.BoxGeometry(0.14, 1.7, 0.14), []),
       // eslint-disable-next-line react-hooks/rules-of-hooks
       useMemo(() => new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.9 }), []),
       (m, s, dummy, i) => {
@@ -217,7 +218,7 @@ export function Birches() {
   );
   const crownMain = useInstanced(
     spots,
-    useMemo(() => new THREE.IcosahedronGeometry(1.5, 1), []),
+    useMemo(() => new THREE.BoxGeometry(2.2, 2.4, 2.2), []),
     useMemo(() => new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 1 }), []),
     (m, s, dummy, i) => {
       dummy.position.set(s.x, s.y + 3.9 * s.s, s.z);
@@ -230,7 +231,7 @@ export function Birches() {
   );
   const crownSide = useInstanced(
     spots,
-    useMemo(() => new THREE.IcosahedronGeometry(1.0, 1), []),
+    useMemo(() => new THREE.BoxGeometry(1.5, 1.5, 1.5), []),
     useMemo(() => new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 1 }), []),
     (m, s, dummy, i) => {
       const [ox, oz] = yawOff(0.85, 0.35, s.rot);
@@ -269,7 +270,7 @@ export function Shrubs() {
   );
   const shrubs = useInstanced(
     spots,
-    useMemo(() => new THREE.IcosahedronGeometry(0.55, 1), []),
+    useMemo(() => new THREE.BoxGeometry(0.9, 0.6, 0.9), []),
     useMemo(() => new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 1 }), []),
     (m, s, dummy, i) => {
       dummy.position.set(s.x, s.y + 0.28 * s.s, s.z);
@@ -300,7 +301,7 @@ export function Rocks() {
   );
   const rocks = useInstanced(
     spots,
-    useMemo(() => new THREE.DodecahedronGeometry(0.9, 0), []),
+    useMemo(() => new THREE.BoxGeometry(1.2, 0.9, 1.2), []),
     useMemo(() => new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 1 }), []),
     (m, s, dummy, i) => {
       dummy.position.set(s.x, s.y + 0.2 * s.s, s.z);
@@ -320,7 +321,7 @@ export function GrassTufts() {
   const spots = useMemo(() => scatter(800, 42, (x, z) => !nearTrailOrCamp(x, z, 3) && getHeight(x, z) < TREE_LINE), []);
   const grass = useInstanced(
     spots,
-    useMemo(() => new THREE.ConeGeometry(0.32, 0.75, 5), []),
+    useMemo(() => new THREE.BoxGeometry(0.28, 0.75, 0.28), []),
     useMemo(() => new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 1 }), []),
     placeAt(0.3),
     (m, s, i) => m.setColorAt(i, dummyColor.setHSL(0.22 + s.tint * 0.06, 0.6, 0.3 + s.tint * 0.12))

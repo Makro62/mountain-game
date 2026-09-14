@@ -8,14 +8,17 @@ export default function App() {
 
   if (screen === "menu") {
     return (
-      <div style={{ width: "100dvw", height: "100dvh" }}>
+      <div className="anim-fade-in" style={{ width: "100dvw", height: "100dvh", overflowY: "auto" }}>
         <MainMenu />
       </div>
     );
   }
 
   return (
-    <div style={{ width: "100dvw", height: "100dvh", position: "relative", background: "#000" }}>
+    <div
+      className="anim-fade-in"
+      style={{ width: "100dvw", height: "100dvh", position: "relative", background: "#020617" }}
+    >
       <MountainScene />
       <HUD />
     </div>

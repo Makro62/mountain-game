@@ -2,7 +2,8 @@ import { useMemo, useRef } from "react";
 import { useShadows } from "./modelKit";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { BRIDGE, getBaseHeight, getHeight, riverCenterX } from "./terrain";
+import { BRIDGE, getBaseHeight, riverCenterX } from "./terrain";
+import { getVoxelTop } from "./voxel";
 
 const RIVER_Z_MIN = -60;
 const RIVER_Z_MAX = 192;
@@ -105,9 +106,9 @@ function Foam() {
   );
 }
 
-/** Jembatan kayu di titik jalur memotong sungai. */
-function Bridge() {
-  const deckY = getHeight(BRIDGE.x, BRIDGE.z);
+/** Jembatan kayu di titik jalur memotong sungai (tetap kotak ala MC). */
+export function Bridge() {
+  const deckY = getVoxelTop(BRIDGE.x, BRIDGE.z) + 0.5;
   const group = useRef<THREE.Group>(null);
   const planks = useMemo(() => Array.from({ length: 7 }, (_, i) => -3.15 + i * 1.05), []);
   useShadows(group, true);

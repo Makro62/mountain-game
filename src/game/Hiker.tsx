@@ -54,13 +54,13 @@ export function Hiker() {
         ].map(({ ref, x }, i) => (
           <group key={i} ref={ref} position={[x, 0.85, 0]}>
             <mesh position={[0, -0.3, 0]} material={sharedMat("#1f2937")}>
-              <capsuleGeometry args={[0.11, 0.45, 4, 10]} />
+              <boxGeometry args={[0.22, 0.65, 0.24]} />
             </mesh>
             <mesh position={[0, -0.42, 0.1]} material={sharedMat("#0c0a09")}>
               <boxGeometry args={[0.16, 0.14, 0.06]} />
             </mesh>
-            <mesh position={[0, -0.72, 0.03]} scale={[1, 0.7, 1.35]} material={sharedMat("#451a03")}>
-              <sphereGeometry args={[0.14, 10, 10]} />
+            <mesh position={[0, -0.72, 0.05]} material={sharedMat("#451a03")}>
+              <boxGeometry args={[0.22, 0.18, 0.36]} />
             </mesh>
             <mesh position={[0, -0.8, 0.04]} material={sharedMat("#1c1917")}>
               <boxGeometry args={[0.2, 0.05, 0.34]} />
@@ -69,7 +69,7 @@ export function Hiker() {
         ))}
         {/* Torso jaket + resleting + tali dada */}
         <mesh position={[0, 1.2, 0]} material={sharedMat("#f97316", 0.75)}>
-          <capsuleGeometry args={[0.26, 0.5, 4, 12]} />
+          <boxGeometry args={[0.55, 0.75, 0.35]} />
         </mesh>
         <mesh position={[0, 1.2, 0.26]} material={sharedMat("#7c2d12", 0.8)}>
           <boxGeometry args={[0.05, 0.55, 0.02]} />
@@ -95,8 +95,8 @@ export function Hiker() {
         <mesh position={[0, 1.22, -0.36]} material={sharedMat("#0ea5e9")}>
           <boxGeometry args={[0.46, 0.12, 0.28]} />
         </mesh>
-        <mesh position={[0, 1.58, -0.36]} rotation={[0, 0, Math.PI / 2]} material={sharedMat("#0ea5e9")}>
-          <cylinderGeometry args={[0.09, 0.09, 0.46, 10]} />
+        <mesh position={[0, 1.58, -0.36]} material={sharedMat("#0ea5e9")}>
+          <boxGeometry args={[0.46, 0.18, 0.18]} />
         </mesh>
         {/* Lengan kapsul + sarung tangan */}
         {[
@@ -105,34 +105,34 @@ export function Hiker() {
         ].map(({ ref, x }, i) => (
           <group key={i} ref={ref} position={[x, 1.44, 0]}>
             <mesh position={[0, -0.26, 0]} material={sharedMat("#c2410c", 0.8)}>
-              <capsuleGeometry args={[0.08, 0.4, 4, 8]} />
+              <boxGeometry args={[0.17, 0.55, 0.19]} />
             </mesh>
-            <mesh position={[0, -0.55, 0]} material={sharedMat("#292524")}>
-              <sphereGeometry args={[0.09, 8, 8]} />
+            <mesh position={[0, -0.58, 0]} material={sharedMat("#292524")}>
+              <boxGeometry args={[0.16, 0.16, 0.16]} />
             </mesh>
             {x > 0 && (
               <mesh position={[0, -0.6, 0.15]} rotation={[0.25, 0, 0]} material={sharedMat("#a8a29e", 0.5, { metalness: 0.4 })}>
-                <cylinderGeometry args={[0.025, 0.025, 1.1, 6]} />
+                <boxGeometry args={[0.06, 1.1, 0.06]} />
               </mesh>
             )}
           </group>
         ))}
         {/* Tudung jaket terlipat di leher */}
         <mesh position={[0, 1.52, -0.2]} rotation={[0.4, 0, 0]} material={sharedMat("#c2410c", 0.85)}>
-          <torusGeometry args={[0.15, 0.07, 8, 14]} />
+          <boxGeometry args={[0.4, 0.14, 0.14]} />
         </mesh>
-        {/* Kepala + kupluk rib + pom + headlamp */}
+        {/* Kepala kotak + kupluk + pom + headlamp */}
         <mesh position={[0, 1.74, 0.01]} material={sharedMat("#fcd9b8", 0.65)}>
-          <sphereGeometry args={[0.2, 16, 16]} />
+          <boxGeometry args={[0.4, 0.4, 0.4]} />
         </mesh>
-        <mesh position={[0, 1.86, -0.01]} material={sharedMat("#b91c1c", 0.85)}>
-          <cylinderGeometry args={[0.215, 0.225, 0.1, 16]} />
+        <mesh position={[0, 1.97, -0.01]} material={sharedMat("#b91c1c", 0.85)}>
+          <boxGeometry args={[0.44, 0.14, 0.44]} />
         </mesh>
-        <mesh position={[0, 1.93, -0.01]} material={sharedMat("#dc2626", 0.85)}>
-          <sphereGeometry args={[0.2, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.55]} />
+        <mesh position={[0, 2.06, -0.01]} material={sharedMat("#dc2626", 0.85)}>
+          <boxGeometry args={[0.4, 0.12, 0.4]} />
         </mesh>
-        <mesh position={[0, 2.04, -0.01]} material={sharedMat("#fecaca", 0.8)}>
-          <sphereGeometry args={[0.07, 10, 10]} />
+        <mesh position={[0, 2.16, -0.01]} material={sharedMat("#fecaca", 0.8)}>
+          <boxGeometry args={[0.14, 0.14, 0.14]} />
         </mesh>
         <mesh position={[0, 1.78, 0.2]} material={sharedMat("#fef9c3", 0.5, { emissive: "#fde047", emissiveIntensity: 1.2 })}>
           <boxGeometry args={[0.1, 0.07, 0.05]} />

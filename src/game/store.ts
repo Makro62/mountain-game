@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { CHECKPOINTS, SNOW_LINE, getHeight, type ItemId } from "./terrain";
+import { CHECKPOINTS, SNOW_LINE, type ItemId } from "./terrain";
+import { BLOCK, blockKey, blockTopNatural, getVoxelTop, type BlockType, type VoxelEdits } from "./voxel";
 
 export type Screen = "menu" | "playing" | "paused" | "won" | "lost";
 export type Weather = "cerah" | "kabut" | "hujan" | "badai";
@@ -31,6 +32,11 @@ interface MountainState {
   message: string;
   messageAt: number;
   muted: boolean;
+  /** Edit voxel dunia: kunci "bx,bz" -> { dh, type }. Persist agar bangunan tersimpan. */
+  edits: VoxelEdits;
+  /** Blok terpilih untuk dipasang + mode build ala Minecraft. */
+  selectedBlock: BlockType;
+  buildMode: boolean;
 
   startNew: () => void;
   continueGame: () => void;
@@ -49,13 +55,17 @@ interface MountainState {
   unlockCheckpoint: (index: number) => void;
   setPlayerPos: (pos: [number, number, number]) => void;
   buildTent: () => void;
+  setSelectedBlock: (b: BlockType) => void;
+  toggleBuildMode: () => void;
+  breakBlockAt: (bx: number, bz: number) => void;
+  placeBlockAt: (bx: number, bz: number) => void;
 }
 
 const DEFAULT_INVENTORY: Inventory = { bekal: 1, jaket: 0, p3k: 0, oksigen: 0 };
 const SPAWN: [number, number, number] = [0, 0, 150];
 
 function spawnY(): number {
-  return getHeight(SPAWN[0], SPAWN[2]) + 1.7;
+  return blockTopNatural(SPAWN[0], SPAWN[2]) + 1.7;
 }
 
 const WEATHERS: Weather[] = ["cerah", "cerah", "cerah", "kabut", "hujan", "badai"];
@@ -85,6 +95,9 @@ export const useMountainStore = create<MountainState>()(
       message: "",
       messageAt: 0,
       muted: false,
+      edits: {},
+      selectedBlock: "dirt",
+      buildMode: true,
 
       startNew: () =>
         set({
@@ -103,17 +116,20 @@ export const useMountainStore = create<MountainState>()(
           timeOfDay: 0.25,
           startedAt: Date.now(),
           endedAt: null,
-          message: "Selamat mendaki! Ikuti penanda merah, cek minimap untuk jalur.",
+          message: "Selamat mendaki! Ikuti blok merah, klik kiri hancurkan & kanan pasang blok.",
           messageAt: Date.now(),
+          edits: {},
+          selectedBlock: "dirt",
+          buildMode: true,
         }),
 
       continueGame: () => {
         const s = get();
-        // Jepret ke pos terakhir (save lama dari jalur lurus tetap valid)
+        // Jepret ke pos terakhir (save lama dari jalur lurus tetap valid; Y di-snap ke voxel)
         const cp = CHECKPOINTS[s.checkpointIndex] ?? CHECKPOINTS[0];
         set({
           screen: "playing",
-          playerPos: [cp.x, getHeight(cp.x, cp.z) + 1.7, cp.z],
+          playerPos: [cp.x, getVoxelTop(cp.x, cp.z, s.edits) + 1.7, cp.z],
           startedAt: s.startedAt ?? Date.now(),
           endedAt: null,
           message: `Lanjutkan dari ${cp.name}!`,
@@ -144,10 +160,37 @@ export const useMountainStore = create<MountainState>()(
           endedAt: null,
           message: "",
           messageAt: 0,
+          edits: {},
+          selectedBlock: "dirt",
         });
       },
 
       toggleMute: () => set((s) => ({ muted: !s.muted })),
+
+      setSelectedBlock: (b) => set({ selectedBlock: b }),
+      toggleBuildMode: () => set((s) => ({ buildMode: !s.buildMode })),
+
+      breakBlockAt: (bx, bz) => {
+        const s = get();
+        if (s.screen !== "playing") return;
+        const key = blockKey(bx, bz);
+        const cur = s.edits[key]?.dh ?? 0;
+        // Jangan gali lebih dari 3 blok agar tidak jatuh ke void
+        const dh = Math.max(-BLOCK * 3, cur - BLOCK);
+        if (dh === cur) return;
+        set({ edits: { ...s.edits, [key]: { dh } } });
+      },
+
+      placeBlockAt: (bx, bz) => {
+        const s = get();
+        if (s.screen !== "playing") return;
+        const key = blockKey(bx, bz);
+        const cur = s.edits[key]?.dh ?? 0;
+        // Maksimal 4 blok di atas alami (cegah menara ke langit)
+        const dh = Math.min(BLOCK * 4, cur + BLOCK);
+        if (dh === cur) return;
+        set({ edits: { ...s.edits, [key]: { dh, type: s.selectedBlock } } });
+      },
 
       showMessage: (msg) => set({ message: msg, messageAt: Date.now() }),
 
@@ -340,6 +383,8 @@ export const useMountainStore = create<MountainState>()(
         weather: s.weather,
         timeOfDay: s.timeOfDay,
         startedAt: s.startedAt,
+        edits: s.edits,
+        selectedBlock: s.selectedBlock,
       }),
     }
   )

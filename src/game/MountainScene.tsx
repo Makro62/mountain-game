@@ -3,7 +3,8 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Sky } from "@react-three/drei";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
-import { CHECKPOINTS, FORKS, LOOT_SPOTS, SHORTCUT_A, SHORTCUT_B, SNOW_LINE, WORLD_SIZE, distToTrail, getHeight, getRiverDepth, getSlope, trailMarkerPoints, type LootSpot } from "./terrain";
+import { CHECKPOINTS, FORKS, LOOT_SPOTS, SHORTCUT_A, SHORTCUT_B, SNOW_LINE, trailMarkerPoints, type LootSpot } from "./terrain";
+import { getVoxelTop } from "./voxel";
 import { sharedMat, useShadows } from "./modelKit";
 import { useMountainStore } from "./store";
 import { playerState } from "./playerRef";
@@ -11,7 +12,8 @@ import { Player } from "./Player";
 import { Hiker } from "./Hiker";
 import { Trees, Birches, Shrubs, Rocks, GrassTufts } from "./Trees";
 import { Birds, DeerHerd } from "./Animals";
-import { River } from "./River";
+import { Bridge } from "./River";
+import { VoxelWorld } from "./VoxelWorld";
 import { Sun } from "./Sun";
 import { Clouds } from "./Clouds";
 import { Snowfall, Footprints } from "./Snowfall";
@@ -25,53 +27,7 @@ const ITEM_COLORS: Record<string, string> = {
   oksigen: "#4ade80",
 };
 
-function TerrainMesh() {
-  const geometry = useMemo(() => {
-    const segs = 160;
-    const geo = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, segs, segs);
-    geo.rotateX(-Math.PI / 2);
-    const pos = geo.attributes.position;
-    const colors = new Float32Array(pos.count * 3);
-    const cGrass = new THREE.Color("#3f6212");
-    const cRock = new THREE.Color("#78716c");
-    const cSnow = new THREE.Color("#f8fafc");
-    const cSand = new THREE.Color("#a8a29e");
-    const cRiverbed = new THREE.Color("#44403c");
-    const cPath = new THREE.Color("#8a6f4d");
-    const tmp = new THREE.Color();
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i);
-      const z = pos.getZ(i);
-      const h = getHeight(x, z);
-      pos.setY(i, h);
-      if (h > 48) tmp.copy(cSnow);
-      else if (h > 28) tmp.copy(cRock).lerp(cSnow, (h - 28) / 20);
-      else if (h > 10) tmp.copy(cGrass).lerp(cRock, (h - 10) / 18);
-      else tmp.copy(cSand).lerp(cGrass, Math.max(0, h / 10));
-      // Tebing curam = batu walau rendah
-      const sl = getSlope(x, z);
-      if (sl > 0.55 && h <= 48) tmp.lerp(cRock, Math.min(0.8, (sl - 0.55) * 1.5));
-      // Dasar sungai lebih gelap (basah)
-      const rd = getRiverDepth(x, z);
-      if (rd > 0.05) tmp.lerp(cRiverbed, Math.min(0.7, rd * 0.4));
-      // Tanah jalur pendakian (terlihat berkelok dari jauh)
-      const td = distToTrail(x, z);
-      if (td < 2.4) tmp.lerp(cPath, 0.75 * (1 - td / 2.4));
-      colors[i * 3] = tmp.r;
-      colors[i * 3 + 1] = tmp.g;
-      colors[i * 3 + 2] = tmp.b;
-    }
-    geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-    geo.computeVertexNormals();
-    return geo;
-  }, []);
-
-  return (
-    <mesh geometry={geometry} receiveShadow>
-      <meshStandardMaterial vertexColors roughness={1} metalness={0} />
-    </mesh>
-  );
-}
+/** Dunia voxel stepped ala Minecraft (gantikan plane smooth). Lihat VoxelWorld.tsx. */
 
 function SkyRig() {
   const dirRef = useRef<THREE.DirectionalLight>(null);
@@ -207,42 +163,36 @@ function Camp({ position, reached }: { position: [number, number, number]; reach
         <boxGeometry args={[1.4, 1.2, 0.06]} />
         <meshStandardMaterial color="#1c1917" roughness={1} />
       </mesh>
-      {/* Bubungan + tiang ujung */}
-      <mesh position={[0, 2.0, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.06, 0.06, 3.2, 7]} />
+      {/* Bubungan + tiang ujung (balok kotak ala MC) */}
+      <mesh position={[0, 2.0, 0]} castShadow>
+        <boxGeometry args={[3.2, 0.14, 0.14]} />
         <meshStandardMaterial color="#5b3a1e" roughness={0.9} />
       </mesh>
       {[-1.45, 1.45].map((x, i) => (
-        <mesh key={i} position={[x, 1.0, 0]}>
-          <cylinderGeometry args={[0.06, 0.06, 2.0, 7]} />
+        <mesh key={i} position={[x, 1.0, 0]} castShadow>
+          <boxGeometry args={[0.14, 2.0, 0.14]} />
           <meshStandardMaterial color="#5b3a1e" roughness={0.9} />
         </mesh>
       ))}
       {/* Tali pancang ke patok */}
       {[
-        [-1.3, 1.9, -1.9, 2.6],
-        [1.3, 1.9, 1.9, 2.6],
-        [-1.3, -1.9, -1.9, -2.6],
-        [1.3, -1.9, 1.9, -2.6],
-      ].map(([x1, z1, x2, z2], i) => (
-        <group key={i}>
-          <mesh position={[(x1 + x2) / 2, 0.35, (z1 + z2) / 2]} rotation={[z2 > z1 ? -0.5 : 0.5, 0, x2 > x1 ? 0.4 : -0.4]}>
-            <cylinderGeometry args={[0.02, 0.02, 1.7, 5]} />
-            <meshStandardMaterial color="#d6d3d1" roughness={0.9} />
-          </mesh>
-          <mesh position={[x2, 0.1, z2]}>
-            <boxGeometry args={[0.12, 0.2, 0.12]} />
-            <meshStandardMaterial color="#44403c" roughness={1} />
-          </mesh>
-        </group>
+        [-1.9, 2.6],
+        [1.9, 2.6],
+        [-1.9, -2.6],
+        [1.9, -2.6],
+      ].map(([x2, z2], i) => (
+        <mesh key={i} position={[x2, 0.1, z2]}>
+          <boxGeometry args={[0.16, 0.24, 0.16]} />
+          <meshStandardMaterial color="#44403c" roughness={1} />
+        </mesh>
       ))}
       {/* Peti perbekalan + matras gulung */}
       <mesh position={[1.9, 0.25, 1.5]} castShadow>
         <boxGeometry args={[0.7, 0.5, 0.5]} />
         <meshStandardMaterial color="#78350f" roughness={0.9} />
       </mesh>
-      <mesh position={[1.9, 0.62, 1.5]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.11, 0.11, 0.72, 8]} />
+      <mesh position={[1.9, 0.62, 1.5]}>
+        <boxGeometry args={[0.72, 0.22, 0.3]} />
         <meshStandardMaterial color="#0ea5e9" roughness={0.9} />
       </mesh>
     </group>
@@ -284,39 +234,40 @@ function Campfire({ position, lit }: { position: [number, number, number]; lit: 
     <group position={position}>
       {stones.map(([x, z], i) => (
         <mesh key={i} position={[x, 0.12, z]} castShadow>
-          <dodecahedronGeometry args={[0.22, 0]} />
+          <boxGeometry args={[0.34, 0.24, 0.34]} />
           <meshStandardMaterial color="#78716c" roughness={1} />
         </mesh>
       ))}
-      {/* Kayu bakar rebah */}
-      {[0, 1, 2].map((i) => {
-        const a = (i / 3) * Math.PI * 2;
-        return (
-          <mesh key={i} position={[Math.cos(a) * 0.3, 0.18, Math.sin(a) * 0.3]} rotation={[Math.PI / 2, 0, a]}>
-            <cylinderGeometry args={[0.09, 0.11, 0.9, 7]} />
-            <meshStandardMaterial color="#451a03" roughness={1} />
-          </mesh>
-        );
-      })}
-      {/* Api + bara */}
+      {/* Kayu bakar rebah (balok) */}
+      {[
+        [0.3, 0, 0],
+        [-0.15, 0, 0.26],
+        [-0.15, 0, -0.26],
+      ].map((p, i) => (
+        <mesh key={i} position={[p[0], 0.18, p[2]]} rotation={[0, i * 1.05, 0]}>
+          <boxGeometry args={[0.9, 0.18, 0.18]} />
+          <meshStandardMaterial color="#451a03" roughness={1} />
+        </mesh>
+      ))}
+      {/* Api kotak + bara */}
       <group ref={flame}>
         <mesh position={[0, 0.55, 0]}>
-          <coneGeometry args={[0.32, 0.85, 8]} />
+          <boxGeometry args={[0.5, 0.8, 0.5]} />
           <meshStandardMaterial color="#f97316" emissive="#ea580c" emissiveIntensity={2.2} />
         </mesh>
         <mesh position={[0, 0.45, 0]}>
-          <coneGeometry args={[0.16, 0.55, 8]} />
+          <boxGeometry args={[0.26, 0.55, 0.26]} />
           <meshStandardMaterial color="#fde047" emissive="#facc15" emissiveIntensity={3} />
         </mesh>
       </group>
       <mesh position={[0, 0.1, 0]}>
-        <cylinderGeometry args={[0.4, 0.45, 0.12, 10]} />
+        <boxGeometry args={[0.85, 0.14, 0.85]} />
         <meshStandardMaterial color="#1c1917" emissive="#7c2d12" emissiveIntensity={lit ? 0.8 : 0} />
       </mesh>
       <pointLight ref={light} position={[0, 1.4, 0]} color="#fb923c" distance={20} decay={2} />
-      {/* Bangku batang */}
-      <mesh position={[2.1, 0.25, 0.4]} rotation={[Math.PI / 2, 0, 0.15]} castShadow>
-        <cylinderGeometry args={[0.24, 0.24, 2.2, 9]} />
+      {/* Bangku balok */}
+      <mesh position={[2.1, 0.25, 0.4]} rotation={[0, 0.15, 0]} castShadow>
+        <boxGeometry args={[2.2, 0.45, 0.45]} />
         <meshStandardMaterial color="#5b3a1e" roughness={1} />
       </mesh>
       {[-0.7, 0.7].map((z, i) => (
@@ -329,11 +280,12 @@ function Campfire({ position, lit }: { position: [number, number, number]; lit: 
   );
 }
 
-/** Loot melayang + berputar agar terlihat sebagai pickup. */
+/** Loot peti kotak melayang + berputar agar terlihat sebagai pickup. */
 function LootMesh({ l }: { l: LootSpot }) {
   const ref = useRef<THREE.Mesh>(null);
   const t = useRef(Math.random() * 6);
-  const y = getHeight(l.x, l.z) + 1;
+  const edits = useMountainStore((s) => s.edits);
+  const y = getVoxelTop(l.x, l.z, edits) + 1.2;
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.1);
     t.current += dt;
@@ -350,28 +302,29 @@ function LootMesh({ l }: { l: LootSpot }) {
   );
 }
 
-/** Rambu dengan mata panah menunjuk rute aman (hijau) & pintas (oranye). */
+/** Rambu balok dengan papan panah kotak (hijau aman, oranye pintas). */
 function SignPost({ f }: { f: (typeof FORKS)[number] }) {
-  const y = getHeight(f.x, f.z);
+  const edits = useMountainStore((s) => s.edits);
+  const y = getVoxelTop(f.x, f.z, edits);
   // Panah (+X lokal) diarahkan ke target: rot.y = atan2(-dz, dx)
   const mainYaw = Math.atan2(-(f.mainZ - f.z), f.mainX - f.x);
   const altYaw = Math.atan2(-(f.altZ - f.z), f.altX - f.x);
   const boards = [
-    { yaw: mainYaw, y: 1.8, color: "#22c55e" },
-    { yaw: altYaw, y: 1.3, color: "#fb923c" },
+    { yaw: mainYaw, y: 2.0, color: "#22c55e" },
+    { yaw: altYaw, y: 1.4, color: "#fb923c" },
   ];
   return (
     <group position={[f.x, y, f.z]}>
-      <mesh position={[0, 1.1, 0]} material={sharedMat("#5b3a1e")}>
-        <cylinderGeometry args={[0.09, 0.09, 2.2]} />
+      <mesh position={[0, 1.2, 0]} material={sharedMat("#5b3a1e")}>
+        <boxGeometry args={[0.2, 2.4, 0.2]} />
       </mesh>
       {boards.map((b, i) => (
         <group key={i} position={[0, b.y, 0]} rotation={[0, b.yaw, 0]}>
           <mesh position={[0.8, 0, 0]} material={sharedMat(b.color, 0.8)}>
-            <boxGeometry args={[1.5, 0.4, 0.08]} />
+            <boxGeometry args={[1.5, 0.4, 0.12]} />
           </mesh>
-          <mesh position={[1.65, 0, 0]} rotation={[0, 0, -Math.PI / 2]} material={sharedMat(b.color, 0.8)}>
-            <coneGeometry args={[0.24, 0.4, 4]} />
+          <mesh position={[1.7, 0, 0]} material={sharedMat(b.color, 0.8)}>
+            <boxGeometry args={[0.4, 0.4, 0.12]} />
           </mesh>
         </group>
       ))}
@@ -382,6 +335,7 @@ function SignPost({ f }: { f: (typeof FORKS)[number] }) {
 function Props() {
   const collected = useMountainStore((s) => s.collectedLoot);
   const checkpointIndex = useMountainStore((s) => s.checkpointIndex);
+  const edits = useMountainStore((s) => s.edits);
   const group = useRef<THREE.Group>(null);
 
   useShadows(group);
@@ -390,21 +344,21 @@ function Props() {
     <group ref={group}>
       {/* Camp + api unggun + bendera di tiap checkpoint */}
       {CHECKPOINTS.map((cp, i) => {
-        const y = getHeight(cp.x, cp.z);
+        const y = getVoxelTop(cp.x, cp.z, edits);
         const reached = i <= checkpointIndex;
         const fx = cp.x - 3.5;
         const fz = cp.z + 1.5;
         return (
           <group key={cp.id}>
             <Camp position={[cp.x + 3.5, y, cp.z]} reached={reached} />
-            {cp.id === "basecamp" && <Camp position={[cp.x - 5, getHeight(cp.x - 5, cp.z + 3), cp.z + 3]} reached={reached} />}
-            <Campfire position={[fx, getHeight(fx, fz), fz]} lit={reached} />
+            {cp.id === "basecamp" && <Camp position={[cp.x - 5, getVoxelTop(cp.x - 5, cp.z + 3, edits), cp.z + 3]} reached={reached} />}
+            <Campfire position={[fx, getVoxelTop(fx, fz, edits), fz]} lit={reached} />
             {/* Gapura basecamp */}
             {cp.id === "basecamp" && (
-              <group position={[cp.x, getHeight(cp.x, cp.z + 10), cp.z + 10]}>
+              <group position={[cp.x, getVoxelTop(cp.x, cp.z + 10, edits), cp.z + 10]}>
                 {[-2.2, 2.2].map((x, k) => (
                   <mesh key={k} position={[x, 1.5, 0]} castShadow>
-                    <cylinderGeometry args={[0.14, 0.16, 3.0, 8]} />
+                    <boxGeometry args={[0.32, 3.0, 0.32]} />
                     <meshStandardMaterial color="#5b3a1e" roughness={0.9} />
                   </mesh>
                 ))}
@@ -420,7 +374,7 @@ function Props() {
             )}
             {/* tiang bendera */}
             <mesh position={[cp.x, y + 2.5, cp.z]}>
-              <cylinderGeometry args={[0.08, 0.08, 5]} />
+              <boxGeometry args={[0.16, 5, 0.16]} />
               <meshStandardMaterial color="#e2e8f0" roughness={0.6} />
             </mesh>
             <WavingFlag color={cp.id === "puncak" ? "#ef4444" : "#22c55e"} position={[cp.x + 0.9, y + 4.2, cp.z]} />
@@ -431,20 +385,20 @@ function Props() {
       {LOOT_SPOTS.filter((l) => !collected.includes(l.id)).map((l) => (
         <LootMesh key={l.id} l={l} />
       ))}
-      {/* Penanda jalur utama: oktahedron merah mengikuti kelokan */}
+      {/* Penanda jalur utama: kubus merah mengikuti kelokan */}
       {trailMarkerPoints(18).map(([mx, mz], i) => {
-        const y = getHeight(mx, mz) + 0.4;
+        const y = getVoxelTop(mx, mz, edits) + 1.2;
         return (
-          <mesh key={i} position={[mx + 2.2, y, mz]} material={sharedMat("#ef4444", 0.6, { emissive: "#ef4444", emissiveIntensity: 0.6 })}>
-            <octahedronGeometry args={[0.3]} />
+          <mesh key={i} position={[mx + 2.2, y, mz]} rotation={[0, Math.PI / 4, 0]} material={sharedMat("#ef4444", 0.6, { emissive: "#ef4444", emissiveIntensity: 0.6 })}>
+            <boxGeometry args={[0.45, 0.45, 0.45]} />
           </mesh>
         );
       })}
-      {/* Penanda pintasan: oktahedron oranye */}
+      {/* Penanda pintasan: kubus oranye */}
       {[SHORTCUT_A, SHORTCUT_B].map((path, pi) =>
         path.map(([sx, sz], i) => (
-          <mesh key={`${pi}-${i}`} position={[sx - 2.2, getHeight(sx, sz) + 0.4, sz]} material={sharedMat("#fb923c", 0.6, { emissive: "#fb923c", emissiveIntensity: 0.6 })}>
-            <octahedronGeometry args={[0.26]} />
+          <mesh key={`${pi}-${i}`} position={[sx - 2.2, getVoxelTop(sx, sz, edits) + 1.2, sz]} rotation={[0, Math.PI / 4, 0]} material={sharedMat("#fb923c", 0.6, { emissive: "#fb923c", emissiveIntensity: 0.6 })}>
+            <boxGeometry args={[0.4, 0.4, 0.4]} />
           </mesh>
         ))
       )}
@@ -467,8 +421,8 @@ export function MountainScene() {
       <SkyRig />
       <Sun />
       <Clouds />
-      <TerrainMesh />
-      <River />
+      <VoxelWorld />
+      <Bridge />
       <Trees />
       <Birches />
       <Shrubs />

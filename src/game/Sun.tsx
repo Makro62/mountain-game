@@ -52,14 +52,14 @@ export function Sun() {
   return (
     <group>
       <mesh ref={sun}>
-        <sphereGeometry args={[16, 16, 16]} />
+        <boxGeometry args={[28, 28, 28]} />
         <meshBasicMaterial color="#ffd34d" fog={false} />
       </mesh>
       <sprite ref={halo} scale={[150, 150, 1]}>
         <spriteMaterial map={haloTex} transparent depthWrite={false} blending={THREE.AdditiveBlending} fog={false} />
       </sprite>
       <mesh ref={moon}>
-        <sphereGeometry args={[11, 16, 16]} />
+        <boxGeometry args={[20, 20, 20]} />
         <meshBasicMaterial color="#e2e8f0" fog={false} />
       </mesh>
     </group>

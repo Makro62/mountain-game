@@ -111,6 +111,36 @@ export function playTent(): void {
   tone(400, 600, 0.2, "sine", 0.14);
 }
 
+/** Bunyi blok dihancurkan: noise kasar pendek (ala gali tanah MC). */
+export function playBreak(): void {
+  const ac = ensureCtx();
+  if (!ac || muted()) return;
+  try {
+    const dur = 0.14;
+    const buffer = ac.createBuffer(1, ac.sampleRate * dur, ac.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+    const src = ac.createBufferSource();
+    src.buffer = buffer;
+    const f = ac.createBiquadFilter();
+    f.type = "lowpass";
+    f.frequency.value = 900;
+    const g = ac.createGain();
+    g.gain.value = 0.2;
+    src.connect(f).connect(g).connect(ac.destination);
+    src.start();
+  } catch {
+    /* abaikan */
+  }
+  tone(220, 90, 0.12, "square", 0.08);
+}
+
+/** Bunyi blok dipasang: klik kotak pendek. */
+export function playPlace(): void {
+  tone(300, 180, 0.09, "square", 0.12);
+  tone(450, 300, 0.07, "square", 0.07, 0.04);
+}
+
 /** Loop angin — gain diatur per frame dari ketinggian & cuaca. */
 export function updateWind(altitude: number, storminess: number): void {
   if (muted()) {

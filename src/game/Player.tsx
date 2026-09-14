@@ -5,16 +5,15 @@ import {
   CHECKPOINTS,
   EDELWEISS,
   FORKS,
-  JUMP_SPEED,
   LOOT_SPOTS,
   PICKUP_RADIUS,
   SNOW_LINE,
   SPRINT_SPEED,
   WALK_SPEED,
   clampWorld,
-  getHeight,
   getSlope,
 } from "./terrain";
+import { BLOCK, PLACEABLE_BLOCKS, getVoxelTop } from "./voxel";
 import { useMountainStore } from "./store";
 import { playerState } from "./playerRef";
 import { playCheckpoint, playLose, playPickup, playStep, playTent, playWin, updateWind } from "./audio";
@@ -41,10 +40,12 @@ export function Player() {
   const prevCheckpoint = useRef(0);
   const prevScreen = useRef("playing");
 
-  // Init dari save (store menyimpan posisi MATA → kaki = mata - 1.7)
+  // Init dari save (store menyimpan posisi MATA → kaki = mata - 1.7, snap ke voxel)
   useEffect(() => {
-    const p = useMountainStore.getState().playerPos;
-    feet.current.set(p[0], p[1] - 1.7, p[2]);
+    const st0 = useMountainStore.getState();
+    const p = st0.playerPos;
+    const snapped = getVoxelTop(p[0], p[2], st0.edits);
+    feet.current.set(p[0], Math.max(p[1] - 1.7, snapped), p[2]);
     playerState.pos.copy(feet.current);
     playerState.faceYaw = Math.PI;
     playerState.moving = false;
@@ -69,6 +70,15 @@ export function Player() {
       if (e.code === "Digit2") st.useItem("jaket");
       if (e.code === "Digit3") st.useItem("p3k");
       if (e.code === "Digit4") st.useItem("oksigen");
+      if (e.code === "Digit5") st.setSelectedBlock(PLACEABLE_BLOCKS[0]);
+      if (e.code === "Digit6") st.setSelectedBlock(PLACEABLE_BLOCKS[1]);
+      if (e.code === "Digit7") st.setSelectedBlock(PLACEABLE_BLOCKS[2]);
+      if (e.code === "Digit8") st.setSelectedBlock(PLACEABLE_BLOCKS[3]);
+      if (e.code === "Digit9") st.setSelectedBlock(PLACEABLE_BLOCKS[4]);
+      if (e.code === "KeyV") {
+        st.toggleBuildMode();
+        st.showMessage(st.buildMode ? "⛏️ Mode build MATI." : "🧱 Mode build NYALA: klik kiri hancurkan, kanan pasang.");
+      }
       if (e.code === "KeyE") {
         // Petik edelweiss terdekat dulu
         const ed = EDELWEISS.find(
@@ -190,16 +200,25 @@ export function Player() {
       mz = (mz / len) * speed * dt;
     }
 
-    const px = clampWorld(feet.current.x + mx);
-    const pz = clampWorld(feet.current.z + mz);
+    let px = clampWorld(feet.current.x + mx);
+    let pz = clampWorld(feet.current.z + mz);
     const slope = getSlope(px, pz);
     const steep = slope > 0.55;
 
-    // Lompat + gravitasi (offset dari tanah)
-    const ground = getHeight(px, pz);
+    // Fisika voxel: auto-step 1 blok ala MC, dinding >1 blok menahan gerak
     const grounded = jumpH.current <= 0;
+    if (grounded && moving) {
+      const rise = getVoxelTop(px, pz, st.edits) - feet.current.y;
+      if (rise > BLOCK + 0.3) {
+        px = feet.current.x;
+        pz = feet.current.z;
+      }
+    }
+
+    // Lompat + gravitasi (offset dari tanah voxel; lompat 1 blok)
+    const ground = getVoxelTop(px, pz, st.edits);
     if (k.has("Space") && grounded && st.stamina > 5) {
-      velY.current = JUMP_SPEED;
+      velY.current = 7;
     }
     velY.current -= 12 * dt;
     jumpH.current += velY.current * dt;
@@ -207,8 +226,8 @@ export function Player() {
       jumpH.current = 0;
       velY.current = 0;
     }
-    const feetY = ground + jumpH.current;
-    feet.current.set(px, feetY, pz);
+    const feetY = Math.max(ground + jumpH.current, ground);
+    feet.current.set(px, jumpH.current <= 0 ? ground : feetY, pz);
 
     // Peringatan sekali saat memasuki zona salju
     if (feetY > SNOW_LINE && !snowAnnounced.current) {
@@ -246,7 +265,7 @@ export function Player() {
     const ccos = Math.cos(yaw.current);
     const cx = tx + csin * cp * CAM_DIST;
     const cz = tz + ccos * cp * CAM_DIST;
-    const cy = Math.max(ty + 1.6 - sp * CAM_DIST, getHeight(cx, cz) + 0.6);
+    const cy = Math.max(ty + 1.6 - sp * CAM_DIST, getVoxelTop(cx, cz, st.edits) + 0.6);
     camTarget.current.set(cx, cy, cz);
     camera.position.lerp(camTarget.current, 1 - Math.exp(-12 * dt));
     camera.lookAt(tx, ty + sp * 2.5, tz);
