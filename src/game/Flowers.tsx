@@ -1,12 +1,13 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { EDELWEISS, WORLD_BOUND, distToTrail, getHeight, riverCenterX } from "./terrain";
-import { blockTopNatural } from "./voxel";
+import { blockTopNatural, getVoxelTop } from "./voxel";
 import { mulberry32 } from "./modelKit";
 import { useMountainStore } from "./store";
 
 /** Padang bunga warna-warni di zona rendah (hiasan). */
 export function MeadowFlowers() {
+  const edits = useMountainStore((s) => s.edits);
   const spots = useMemo(() => {
     const rand = mulberry32(99);
     const out: Array<{ x: number; y: number; z: number; s: number; c: number }> = [];
@@ -20,8 +21,8 @@ export function MeadowFlowers() {
       if (h > 20) continue;
       out.push({ x, y: blockTopNatural(x, z), z, s: 0.7 + rand() * 0.7, c: palette[Math.floor(rand() * palette.length)] });
     }
-    return out;
-  }, []);
+    return out.map((s) => ({ ...s, y: getVoxelTop(s.x, s.z, edits) }));
+  }, [edits]);
 
   const { stems, heads } = useMemo(() => {
     const stemMesh = new THREE.InstancedMesh(
@@ -54,6 +55,15 @@ export function MeadowFlowers() {
     return { stems: stemMesh, heads: headMesh };
   }, [spots]);
 
+  useEffect(() => {
+    return () => {
+      stems.dispose();
+      heads.dispose();
+      (stems.material as THREE.Material).dispose();
+      (heads.material as THREE.Material).dispose();
+    };
+  }, [stems, heads]);
+
   if (spots.length === 0) return null;
   return (
     <group>
@@ -63,8 +73,7 @@ export function MeadowFlowers() {
   );
 }
 
-function EdelweissFlower({ x, z, taken }: { x: number; z: number; taken: boolean }) {
-  const y = blockTopNatural(x, z);
+function EdelweissFlower({ x, z, y, taken }: { x: number; z: number; y: number; taken: boolean }) {
   if (taken) return null;
   return (
     <group position={[x, y, z]}>
@@ -107,10 +116,11 @@ function EdelweissFlower({ x, z, taken }: { x: number; z: number; taken: boolean
 /** Edelweiss kolektibel di zona salju (12 titik). */
 export function EdelweissPatch() {
   const taken = useMountainStore((s) => s.edelweiss);
+  const edits = useMountainStore((s) => s.edits);
   return (
     <group>
       {EDELWEISS.map((e) => (
-        <EdelweissFlower key={e.id} x={e.x} z={e.z} taken={taken.includes(e.id)} />
+        <EdelweissFlower key={e.id} x={e.x} z={e.z} y={getVoxelTop(e.x, e.z, edits)} taken={taken.includes(e.id)} />
       ))}
     </group>
   );

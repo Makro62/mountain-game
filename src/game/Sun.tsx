@@ -44,7 +44,7 @@ export function Sun() {
       halo.current.visible = isDay;
     }
     if (moon.current) {
-      moon.current.position.copy(dir).multiplyScalar(-650);
+      moon.current.position.set(dir.x * -650, Math.abs(dir.y) * 650, dir.z * -650);
       moon.current.visible = !isDay;
     }
   });

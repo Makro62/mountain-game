@@ -4,7 +4,7 @@ import reactHooks from 'eslint-plugin-react-hooks'
 
 export default tseslint.config(
   {
-    ignores: ['**/dist/**', '**/node_modules/**', '**/graphify-out/**', '**/*.config.js', '**/*.config.ts', 'eslint.config.js'],
+    ignores: ['**/dist/**', '**/node_modules/**', '**/.next/**', '**/graphify-out/**', '**/*.config.js', '**/*.config.mjs', '**/*.config.ts', 'eslint.config.js'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

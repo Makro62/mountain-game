@@ -1,5 +1,7 @@
 import * as THREE from "three";
 import {
+  BRIDGE,
+  SNOW_LINE,
   WORLD_BOUND,
   distToTrail,
   getBaseHeight,
@@ -18,6 +20,9 @@ import { mulberry32 } from "./modelKit";
  */
 
 export const BLOCK = 2;
+
+/** Dek jembatan rata (kuantisasi base height di tengah jembatan). */
+const BRIDGE_DECK_TOP = Math.max(0, Math.floor(getBaseHeight(BRIDGE.x, BRIDGE.z) / BLOCK) * BLOCK);
 
 /** Blok yang bisa dipasang pemain via hotbar. */
 export const PLACEABLE_BLOCKS = ["grass", "dirt", "stone", "planks", "leaves"] as const;
@@ -57,6 +62,7 @@ export function blockToWorld(bx: number, bz: number): [number, number] {
 
 /** Tinggi alami ter-quantize (tangga blok) TANPA edit pemain. */
 export function blockTopNatural(x: number, z: number): number {
+  if (Math.abs(x - BRIDGE.x) <= 4 && Math.abs(z - BRIDGE.z) <= 1.6) return BRIDGE_DECK_TOP;
   const h = getHeight(x, z);
   return Math.max(0, Math.floor(h / BLOCK) * BLOCK);
 }
@@ -77,8 +83,8 @@ export function topBlockType(x: number, z: number): BlockType {
   const rd = getRiverDepth(x, z);
   if (rd > 0.4) return "riverbed";
   const td = distToTrail(x, z);
-  if (td < 2.4) return "dirt";
-  if (h > 48) return "snow";
+  if (td < 1.2) return "dirt";
+  if (h > SNOW_LINE) return "snow";
   if (h > 28) return "stone";
   if (h > 10) return "grass";
   return "sand";

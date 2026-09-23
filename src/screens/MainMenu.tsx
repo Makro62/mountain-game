@@ -1,10 +1,11 @@
-import { CHECKPOINTS } from "../game/terrain";
+import { CHECKPOINTS, NOTES } from "../game/terrain";
 import { useMountainStore } from "../game/store";
+import { dailySeedString, hashSeed, seedCode } from "../game/expedition";
 
 const STATS = [
   { icon: "🏕️", value: "5 Pos", label: "Basecamp → Puncak" },
   { icon: "🌸", value: "12", label: "Edelweiss" },
-  { icon: "🎒", value: "4", label: "Jenis item" },
+  { icon: "🎒", value: "8", label: "Jenis item" },
 ];
 
 const CONTROLS: Array<[string, string]> = [
@@ -13,7 +14,9 @@ const CONTROLS: Array<[string, string]> = [
   ["Shift", "Sprint — boros stamina"],
   ["Spasi", "Lompat kecil"],
   ["1 – 4", "Pakai Bekal / Jaket / P3K / Oksigen"],
-  ["E", "Petik edelweiss / dirikan tenda di pos"],
+  ["Q R T G", "Tali / Kompas / Termos / Peluit"],
+  ["E", "Petik edelweiss / catatan / tenda di pos"],
+  ["F", "Foto satwa (rusa/burung ≤6 m)"],
   ["Esc", "Pause"],
 ];
 
@@ -25,14 +28,22 @@ const TIPS = [
 
 export function MainMenu() {
   const startNew = useMountainStore((s) => s.startNew);
+  const startExpedition = useMountainStore((s) => s.startExpedition);
   const continueGame = useMountainStore((s) => s.continueGame);
   const resetSave = useMountainStore((s) => s.resetSave);
   const startedAt = useMountainStore((s) => s.startedAt);
   const checkpointIndex = useMountainStore((s) => s.checkpointIndex);
   const edelweiss = useMountainStore((s) => s.edelweiss);
+  const notesRead = useMountainStore((s) => s.notesRead);
+  const photoScore = useMountainStore((s) => s.photoScore);
+  const mode = useMountainStore((s) => s.mode);
+  const seed = useMountainStore((s) => s.seed);
+  const ghostEnabled = useMountainStore((s) => s.ghostEnabled);
+  const toggleGhost = useMountainStore((s) => s.toggleGhost);
 
   const progress = Math.round(((checkpointIndex + 1) / CHECKPOINTS.length) * 100);
   const currentCp = CHECKPOINTS[Math.min(checkpointIndex, CHECKPOINTS.length - 1)];
+  const todayCode = seedCode(hashSeed(dailySeedString()));
 
   return (
     <div className="relative min-h-full w-full overflow-hidden bg-[#060b16]">
@@ -116,7 +127,12 @@ export function MainMenu() {
                   <div>
                     <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-300">Save ditemukan</div>
                     <div className="text-sm font-bold text-white">Terakhir: {currentCp.name}</div>
-                    <div className="text-xs text-white/60">🌸 {edelweiss.length}/12 edelweiss terkumpul</div>
+                    <div className="text-xs text-white/60">
+                      🌸 {edelweiss.length}/12 edelweiss • 📖 {notesRead.length}/{NOTES.length} catatan • 📷 {photoScore} foto
+                    </div>
+                    <div className="mt-0.5 font-mono text-[11px] font-bold text-cyan-200/80">
+                      {seed === 0 ? "EXPEDITION" : `EXPEDITION ${seedCode(seed)}`} • {mode === "harian" ? "Tantangan Harian" : "Standar"}
+                    </div>
                   </div>
                   <div className="text-right">
                     <div className="text-2xl font-black text-white">{progress}%</div>
@@ -148,21 +164,48 @@ export function MainMenu() {
             )}
 
             <div className="anim-fade-up stagger-4 flex max-w-md flex-col gap-2">
-              <button
-                onClick={startNew}
-                className="btn-game group flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 px-5 py-3.5 text-[15px] font-black tracking-wide text-white shadow-[0_10px_30px_rgba(34,197,94,0.35)]"
-              >
-                <span className="text-lg">🥾</span> MULAI PENDAKIAN BARU
-                <span className="transition-transform group-hover:translate-x-1">→</span>
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => startExpedition("standar")}
+                  className="btn-game group flex flex-col items-center justify-center gap-0.5 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 px-4 py-3.5 text-white shadow-[0_10px_30px_rgba(34,197,94,0.35)]"
+                >
+                  <span className="text-lg">🥾</span>
+                  <span className="text-[13px] font-black tracking-wide">EKSPEDISI STANDAR</span>
+                  <span className="text-[10px] font-semibold text-white/75">seed acak tiap mulai</span>
+                </button>
+                <button
+                  onClick={() => startExpedition("harian")}
+                  className="btn-game group flex flex-col items-center justify-center gap-0.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 px-4 py-3.5 text-white shadow-[0_10px_30px_rgba(14,165,233,0.35)]"
+                >
+                  <span className="text-lg">📅</span>
+                  <span className="text-[13px] font-black tracking-wide">TANTANGAN HARIAN</span>
+                  <span className="font-mono text-[10px] font-bold text-white/85">{todayCode} • sama untuk semua</span>
+                </button>
+              </div>
               {startedAt && (
                 <button
                   onClick={continueGame}
-                  className="btn-game flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 px-5 py-3 text-sm font-black text-white shadow-[0_10px_30px_rgba(14,165,233,0.3)]"
+                  className="btn-game flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-slate-600 to-slate-700 px-5 py-3 text-sm font-black text-white shadow-[0_10px_30px_rgba(100,116,139,0.3)]"
                 >
                   ▶️ LANJUTKAN — {currentCp.name.toUpperCase()}
                 </button>
               )}
+              <div className="flex gap-2">
+                <button
+                  onClick={toggleGhost}
+                  className="btn-game flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-bold text-white/60 hover:bg-white/10 hover:text-white/80"
+                  title="Tampilkan rekaman best-run saat pendakian berikutnya"
+                >
+                  {ghostEnabled ? "👻 Ghost: ON" : "👓 Ghost: OFF"}
+                </button>
+                <button
+                  onClick={startNew}
+                  className="btn-game flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-bold text-white/60 hover:bg-white/10 hover:text-white/80"
+                  title="Ulangi ekspedisi terakhir dengan seed yang sama"
+                >
+                  🔁 Ulangi seed terakhir
+                </button>
+              </div>
               <button
                 onClick={() => {
                   if (window.confirm("Hapus save lokal dan mulai dari nol?")) resetSave();

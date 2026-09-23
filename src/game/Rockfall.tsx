@@ -46,6 +46,7 @@ export function Rockfall() {
     const eyeY = p.y + 1.7; // acuan mata, sama seperti banner HUD
     const danger =
       st.screen === "playing" &&
+      !st.openNote &&
       st.weather === "badai" &&
       eyeY > ROCK_ZONE_MIN &&
       eyeY < ROCK_ZONE_MAX;
@@ -60,7 +61,17 @@ export function Rockfall() {
           r.age = 0;
           r.hitDone = false;
           r.spin = (Math.random() * 2 - 1) * 5;
-          r.pos.set(p.x + (Math.random() * 2 - 1) * 14, p.y + 10 + Math.random() * 6, p.z + (Math.random() * 2 - 1) * 14);
+          // Spawn di sisi HILLSIDE (mengalir turun ke pemain), bukan langit-langit
+          const ge = 1.5;
+          const ggx = getHeight(p.x + ge, p.z) - getHeight(p.x - ge, p.z);
+          const ggz = getHeight(p.x, p.z + ge) - getHeight(p.x, p.z - ge);
+          const glen = Math.hypot(ggx, ggz) || 1;
+          const upDist = 8 + Math.random() * 8;
+          r.pos.set(
+            p.x + (ggx / glen) * upDist + (Math.random() * 2 - 1) * 4,
+            p.y + 10 + Math.random() * 6,
+            p.z + (ggz / glen) * upDist + (Math.random() * 2 - 1) * 4
+          );
           // Arah gelinding = turunan lereng
           const e = 1.5;
           const gx = getHeight(r.pos.x + e, r.pos.z) - getHeight(r.pos.x - e, r.pos.z);
@@ -98,7 +109,7 @@ export function Rockfall() {
         return;
       }
       // Kena pemain? (badan ≈ kaki + 0.9)
-      if (!r.hitDone && st.screen === "playing" && now - lastHit.current > 1500) {
+      if (!r.hitDone && st.screen === "playing" && !st.openNote && now - lastHit.current > 1500) {
         const d = Math.hypot(r.pos.x - p.x, r.pos.y - (p.y + 0.9), r.pos.z - p.z);
         if (d < 1.8) {
           r.hitDone = true;
@@ -136,5 +147,5 @@ export function Rockfall() {
 export function rockfallDanger(): boolean {
   const st = useMountainStore.getState();
   const y = st.playerPos[1];
-  return st.screen === "playing" && st.weather === "badai" && y > ROCK_ZONE_MIN && y < ROCK_ZONE_MAX;
+  return st.screen === "playing" && !st.openNote && st.weather === "badai" && y > ROCK_ZONE_MIN && y < ROCK_ZONE_MAX;
 }

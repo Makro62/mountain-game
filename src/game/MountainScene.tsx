@@ -3,21 +3,24 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Sky } from "@react-three/drei";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
-import { CHECKPOINTS, FORKS, LOOT_SPOTS, SHORTCUT_A, SHORTCUT_B, SNOW_LINE, trailMarkerPoints, type LootSpot } from "./terrain";
+import { CHECKPOINTS, FORKS, LOOT_SPOTS, NOTES, SHORTCUT_A, SHORTCUT_B, SNOW_LINE, trailMarkerPoints, type LootSpot } from "./terrain";
 import { getVoxelTop } from "./voxel";
 import { sharedMat, useShadows } from "./modelKit";
 import { useMountainStore } from "./store";
+import { activeLootIds } from "./expedition";
 import { playerState } from "./playerRef";
 import { Player } from "./Player";
 import { Hiker } from "./Hiker";
 import { Trees, Birches, Shrubs, Rocks, GrassTufts } from "./Trees";
 import { Birds, DeerHerd } from "./Animals";
-import { Bridge } from "./River";
+import { River } from "./River";
 import { VoxelWorld } from "./VoxelWorld";
 import { Sun } from "./Sun";
 import { Clouds } from "./Clouds";
 import { Snowfall, Footprints } from "./Snowfall";
 import { Rockfall } from "./Rockfall";
+import { Lightning } from "./Lightning";
+import { GhostRunner } from "./GhostRunner";
 import { MeadowFlowers, EdelweissPatch } from "./Flowers";
 
 const ITEM_COLORS: Record<string, string> = {
@@ -25,12 +28,17 @@ const ITEM_COLORS: Record<string, string> = {
   jaket: "#38bdf8",
   p3k: "#f87171",
   oksigen: "#4ade80",
+  tali: "#c084fc",
+  kompas: "#fde68a",
+  termos: "#f472b6",
+  peluit: "#22d3ee",
 };
 
 /** Dunia voxel stepped ala Minecraft (gantikan plane smooth). Lihat VoxelWorld.tsx. */
 
 function SkyRig() {
   const dirRef = useRef<THREE.DirectionalLight>(null);
+  const hemiRef = useRef<THREE.HemisphereLight>(null);
   const target = useMemo(() => new THREE.Object3D(), []);
   const timeOfDay = useMountainStore((s) => s.timeOfDay);
   const weather = useMountainStore((s) => s.weather);
@@ -52,6 +60,10 @@ function SkyRig() {
       target.updateMatrixWorld();
       dirRef.current.intensity = isNight ? 0.25 : weather === "badai" ? 0.7 : 1.6;
     }
+    if (hemiRef.current) {
+      hemiRef.current.intensity = isNight ? 0.2 : weather === "badai" ? 0.4 : 0.7;
+      hemiRef.current.color.set(isNight ? "#1e293b" : "#bfdbfe");
+    }
     if (scene.fog instanceof THREE.Fog) {
       if (weather === "kabut") {
         scene.fog.near = 8;
@@ -61,7 +73,7 @@ function SkyRig() {
         scene.fog.far = 140;
       } else {
         scene.fog.near = 40;
-        scene.fog.far = 320;
+        scene.fog.far = 240;
       }
       // Zona salju: jarak pandang menyempit + nuansa dingin
       const alt = useMountainStore.getState().playerPos[1];
@@ -82,7 +94,7 @@ function SkyRig() {
 
   return (
     <>
-      <hemisphereLight args={["#bfdbfe", "#365314", 0.7]} />
+      <hemisphereLight ref={hemiRef} args={["#bfdbfe", "#365314", 0.7]} />
       <directionalLight
         ref={dirRef}
         position={sunPos}
@@ -95,11 +107,11 @@ function SkyRig() {
         shadow-camera-near={10}
         shadow-camera-far={250}
         shadow-bias={-0.0008}
-        shadow-normalBias={2}
+        shadow-normalBias={0.03}
       />
       <primitive object={target} />
       <Sky sunPosition={sunPos} turbidity={8} rayleigh={2} />
-      <fog attach="fog" args={["#bfdbfe", 40, 320]} />
+      <fog attach="fog" args={["#bfdbfe", 40, 240]} />
     </>
   );
 }
@@ -336,6 +348,9 @@ function Props() {
   const collected = useMountainStore((s) => s.collectedLoot);
   const checkpointIndex = useMountainStore((s) => s.checkpointIndex);
   const edits = useMountainStore((s) => s.edits);
+  const seed = useMountainStore((s) => s.seed);
+  const notesRead = useMountainStore((s) => s.notesRead);
+  const activeLoot = useMemo(() => new Set(activeLootIds(seed)), [seed]);
   const group = useRef<THREE.Group>(null);
 
   useShadows(group);
@@ -381,10 +396,26 @@ function Props() {
           </group>
         );
       })}
-      {/* Loot mengambang */}
-      {LOOT_SPOTS.filter((l) => !collected.includes(l.id)).map((l) => (
+      {/* Loot mengambang (hanya yang aktif untuk seed ekspedisi ini) */}
+      {LOOT_SPOTS.filter((l) => activeLoot.has(l.id) && !collected.includes(l.id)).map((l) => (
         <LootMesh key={l.id} l={l} />
       ))}
+      {/* Catatan lore: buku melayang di dekat pos/jalur */}
+      {NOTES.map((n) => {
+        const read = notesRead.includes(n.id);
+        const y = getVoxelTop(n.x, n.z, edits) + 1.4;
+        return (
+          <mesh key={n.id} position={[n.x, y, n.z]} rotation={[0.3, 0.5, 0]} castShadow>
+            <boxGeometry args={[0.5, 0.65, 0.08]} />
+            <meshStandardMaterial
+              color={read ? "#cbd5e1" : "#fef9c3"}
+              emissive={read ? "#64748b" : "#fde047"}
+              emissiveIntensity={read ? 0.2 : 0.9}
+              roughness={0.7}
+            />
+          </mesh>
+        );
+      })}
       {/* Penanda jalur utama: kubus merah mengikuti kelokan */}
       {trailMarkerPoints(18).map(([mx, mz], i) => {
         const y = getVoxelTop(mx, mz, edits) + 1.2;
@@ -422,7 +453,7 @@ export function MountainScene() {
       <Sun />
       <Clouds />
       <VoxelWorld />
-      <Bridge />
+      <River />
       <Trees />
       <Birches />
       <Shrubs />
@@ -435,7 +466,9 @@ export function MountainScene() {
       <Snowfall />
       <Footprints />
       <Rockfall />
+      <Lightning />
       <Props />
+      <GhostRunner />
       <Player />
       <Hiker />
     </Canvas>

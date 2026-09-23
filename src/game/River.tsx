@@ -4,6 +4,7 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { BRIDGE, getBaseHeight, riverCenterX } from "./terrain";
 import { getVoxelTop } from "./voxel";
+import { useMountainStore } from "./store";
 
 const RIVER_Z_MIN = -60;
 const RIVER_Z_MAX = 192;
@@ -14,7 +15,7 @@ function WaterSurface() {
   const mat = useRef<THREE.MeshStandardMaterial>(null);
   const time = useRef(0);
 
-  const geometry = useMemo(() => {
+  const { geometry, baseY } = useMemo(() => {
     const step = 4;
     const rows: number[] = [];
     for (let z = RIVER_Z_MIN; z <= RIVER_Z_MAX; z += step) rows.push(z);
@@ -35,7 +36,9 @@ function WaterSurface() {
     geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
     geo.setIndex(index);
     geo.computeVertexNormals();
-    return geo;
+    const by = new Float32Array(positions.length);
+    by.set(positions);
+    return { geometry: geo, baseY: by };
   }, []);
 
   useFrame((_, rawDt) => {
@@ -43,6 +46,13 @@ function WaterSurface() {
     if (mat.current) {
       mat.current.opacity = 0.68 + Math.sin(time.current * 2) * 0.07;
     }
+    const attr = geometry.getAttribute("position") as THREE.BufferAttribute;
+    const arr = attr.array as Float32Array;
+    const t = time.current;
+    for (let i = 0; i < arr.length; i += 3) {
+      arr[i + 1] = baseY[i + 1] + Math.sin(t * 2.2 + baseY[i + 2] * 0.35 + baseY[i] * 0.2) * 0.05;
+    }
+    attr.needsUpdate = true;
   });
 
   return (
@@ -108,7 +118,8 @@ function Foam() {
 
 /** Jembatan kayu di titik jalur memotong sungai (tetap kotak ala MC). */
 export function Bridge() {
-  const deckY = getVoxelTop(BRIDGE.x, BRIDGE.z) + 0.5;
+  const edits = useMountainStore((s) => s.edits);
+  const deckY = getVoxelTop(BRIDGE.x, BRIDGE.z, edits);
   const group = useRef<THREE.Group>(null);
   const planks = useMemo(() => Array.from({ length: 7 }, (_, i) => -3.15 + i * 1.05), []);
   useShadows(group, true);

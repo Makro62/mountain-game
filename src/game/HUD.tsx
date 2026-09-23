@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { BRIDGE, CHECKPOINTS, SHORTCUT_A, SHORTCUT_B, TRAIL, riverCenterX } from "./terrain";
+import { BRIDGE, CHECKPOINTS, NOTES, SHORTCUT_A, SHORTCUT_B, TRAIL, riverCenterX } from "./terrain";
 import { playerState } from "./playerRef";
-import { formatDuration, useMountainStore, type Weather } from "./store";
+import { formatDuration, calcRank, useMountainStore, type Weather } from "./store";
+import { seedCode } from "./expedition";
+import { ghostDistance, loadGhost } from "./ghost";
+import { ghostEligible } from "./GhostRunner";
 
 const WEATHER_META: Record<Weather, { icon: string; label: string; chip: string }> = {
   cerah: { icon: "☀️", label: "Cerah", chip: "border-amber-300/30 bg-amber-400/15 text-amber-200" },
@@ -60,8 +63,16 @@ function formatClock(t: number): string {
   return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
 }
 
-/** Minimap top-down: jalur, pintasan, sungai, pos, pemain. */
-function Minimap({ checkpointIndex }: { checkpointIndex: number }) {
+/** Minimap top-down: jalur, pintasan, sungai, pos, pemain, arah kompas. */
+function Minimap({
+  checkpointIndex,
+  hasKompas,
+  weather,
+}: {
+  checkpointIndex: number;
+  hasKompas: boolean;
+  weather: Weather;
+}) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -126,6 +137,29 @@ function Minimap({ checkpointIndex }: { checkpointIndex: number }) {
       ctx.fillStyle = "#b45309";
       ctx.fillRect(X(BRIDGE.x) - 2.5, Y(BRIDGE.z) - 2.5, 5, 5);
 
+      const px = X(playerState.pos.x);
+      const py = Y(playerState.pos.z);
+
+      // Kompas: garis bearing ke pos berikutnya (+ pulse saat kabut)
+      const nextCp = CHECKPOINTS[Math.min(checkpointIndex + 1, CHECKPOINTS.length - 1)];
+      if (hasKompas) {
+        ctx.strokeStyle = "rgba(34,211,238,0.9)";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 4]);
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.lineTo(X(nextCp.x), Y(nextCp.z));
+        ctx.stroke();
+        ctx.setLineDash([]);
+        if (weather === "kabut") {
+          ctx.strokeStyle = "rgba(34,211,238,0.75)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(X(nextCp.x), Y(nextCp.z), 8 + Math.sin(Date.now() / 220) * 3, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+
       // Checkpoint
       CHECKPOINTS.forEach((cp, i) => {
         const isNext = i === checkpointIndex + 1;
@@ -151,8 +185,6 @@ function Minimap({ checkpointIndex }: { checkpointIndex: number }) {
       });
 
       // Pemain
-      const px = X(playerState.pos.x);
-      const py = Y(playerState.pos.z);
       ctx.fillStyle = "#ffffff";
       ctx.strokeStyle = "rgba(0,0,0,0.6)";
       ctx.lineWidth = 1.5;
@@ -173,7 +205,7 @@ function Minimap({ checkpointIndex }: { checkpointIndex: number }) {
 
     draw();
     return () => cancelAnimationFrame(rafId);
-  }, [checkpointIndex]);
+  }, [checkpointIndex, hasKompas, weather]);
 
   return <canvas ref={ref} width={160} height={160} className="h-32 w-32 sm:h-40 sm:w-40" />;
 }
@@ -207,11 +239,107 @@ function ToastMessage() {
   );
 }
 
+/** Banner minicelebrate saat checkpoint terbuka ("CHECKPOINT: Pos 2"). */
+function CheckpointBanner() {
+  const banner = useMountainStore((s) => s.banner);
+  const bannerAt = useMountainStore((s) => s.bannerAt);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (!banner || !bannerAt) return;
+    setVisible(true);
+    const id = setTimeout(() => setVisible(false), 3500);
+    return () => clearTimeout(id);
+  }, [banner, bannerAt]);
+
+  if (!visible || !banner) return null;
+  return (
+    <div className="pointer-events-none absolute left-1/2 top-[120px] z-20 -translate-x-1/2">
+      <div className="anim-pop rounded-xl border border-amber-300/40 bg-gradient-to-r from-amber-500/25 to-emerald-500/25 px-5 py-2 text-center text-sm font-black tracking-[0.2em] text-amber-100 shadow-2xl backdrop-blur-md">
+        🚩 {banner}
+      </div>
+    </div>
+  );
+}
+
+/** Flash putih sesaat: rana foto atau kilat petir. */
+function FlashOverlay() {
+  const photoFlashAt = useMountainStore((s) => s.photoFlashAt);
+  const lightningAt = useMountainStore((s) => s.lightningAt);
+  const [photo, setPhoto] = useState(false);
+  const [bolt, setBolt] = useState(false);
+
+  useEffect(() => {
+    if (!photoFlashAt) return;
+    setPhoto(true);
+    const id = setTimeout(() => setPhoto(false), 220);
+    return () => clearTimeout(id);
+  }, [photoFlashAt]);
+
+  useEffect(() => {
+    if (!lightningAt) return;
+    setBolt(true);
+    const id = setTimeout(() => setBolt(false), 320);
+    return () => clearTimeout(id);
+  }, [lightningAt]);
+
+  if (!photo && !bolt) return null;
+  return (
+    <div
+      className="pointer-events-none absolute inset-0 z-40"
+      style={{
+        background: photo
+          ? "radial-gradient(ellipse at center, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.4) 55%, transparent 80%)"
+          : "rgba(226,232,240,0.55)",
+        animation: "fade-in 0.22s ease both",
+      }}
+    />
+  );
+}
+
+/** Modal catatan lore (interaksi E). */
+function NoteModal() {
+  const openNote = useMountainStore((s) => s.openNote);
+  const notesRead = useMountainStore((s) => s.notesRead);
+  const closeNote = useMountainStore((s) => s.closeNote);
+  if (!openNote) return null;
+  const note = NOTES.find((n) => n.id === openNote);
+  if (!note) return null;
+  const found = notesRead.length;
+  return (
+    <div className="pointer-events-auto absolute inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+      <div className="anim-pop w-full max-w-md rounded-2xl border border-amber-200/25 bg-gradient-to-b from-slate-900 to-slate-950 p-6 shadow-2xl">
+        <div className="mb-1 flex items-center justify-between">
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-300/80">📖 Catatan Ekspedisi</span>
+          <span className="font-mono text-[11px] font-bold text-white/50">{found}/{NOTES.length}</span>
+        </div>
+        <h3 className="text-lg font-black text-amber-100">{note.title}</h3>
+        <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-slate-200/90">{note.text}</p>
+        <div className="mt-5 flex items-center justify-between gap-3">
+          <span className="text-[11px] text-white/40">
+            <span className="kbd">E</span> tutup
+          </span>
+          <button
+            onClick={closeNote}
+            className="btn-game rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-5 py-2 text-sm font-black text-white shadow-lg"
+          >
+            Simpan ke jurnal
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const INVENTORY_SLOTS = [
   { id: "bekal", emoji: "🍙", key: "1", name: "Bekal", effect: "+30 ⚡" },
   { id: "jaket", emoji: "🧥", key: "2", name: "Jaket", effect: "+30 🌡️" },
   { id: "p3k", emoji: "🩹", key: "3", name: "P3K", effect: "+40 ⚡🌡️" },
   { id: "oksigen", emoji: "🫁", key: "4", name: "Oksigen", effect: "+50 🫁" },
+  { id: "tali", emoji: "🧗", key: "Q", name: "Tali", effect: "tanjakan -50%" },
+  { id: "kompas", emoji: "🧭", key: "R", name: "Kompas", effect: "arah di minimap" },
+  { id: "termos", emoji: "🫖", key: "T", name: "Termos", effect: "drain suhu -30%" },
+  { id: "peluit", emoji: "📯", key: "G", name: "Peluit", effect: "+25 semua (1×)" },
 ] as const;
 
 export function HUD() {
@@ -229,6 +357,12 @@ export function HUD() {
   const edelweiss = useMountainStore((s) => s.edelweiss);
   const startedAt = useMountainStore((s) => s.startedAt);
   const endedAt = useMountainStore((s) => s.endedAt);
+  const mode = useMountainStore((s) => s.mode);
+  const seed = useMountainStore((s) => s.seed);
+  const modifiers = useMountainStore((s) => s.modifiers);
+  const notesRead = useMountainStore((s) => s.notesRead);
+  const photoScore = useMountainStore((s) => s.photoScore);
+  const ghostEnabled = useMountainStore((s) => s.ghostEnabled);
 
   const pause = useMountainStore((s) => s.pause);
   const resume = useMountainStore((s) => s.resume);
@@ -236,6 +370,7 @@ export function HUD() {
   const startNew = useMountainStore((s) => s.startNew);
   const consumeItem = useMountainStore((s) => s.useItem);
   const toggleMute = useMountainStore((s) => s.toggleMute);
+  const toggleGhost = useMountainStore((s) => s.toggleGhost);
   const muted = useMountainStore((s) => s.muted);
 
   const nextCp = CHECKPOINTS[Math.min(checkpointIndex + 1, CHECKPOINTS.length - 1)];
@@ -247,6 +382,10 @@ export function HUD() {
   const wMeta = WEATHER_META[weather];
   const critical = stamina <= 20 || suhu <= 20;
   const progress = Math.round(((checkpointIndex + 1) / CHECKPOINTS.length) * 100);
+  const hasKompas = (inventory.kompas ?? 0) > 0;
+  const seedLabel = seed === 0 ? "EXPEDITION" : `EXPEDITION ${seedCode(seed)}`;
+  const runDistance = ghostDistance();
+  const rank = calcRank(elapsed, edelweiss.length, notesRead.length, NOTES.length);
 
   const openMenu = () => {
     try {
@@ -261,6 +400,8 @@ export function HUD() {
 
   return (
     <div className="pointer-events-none absolute inset-0 select-none" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
+      <FlashOverlay />
+      <NoteModal />
       {/* Vignette bahaya saat kritis */}
       {screen === "playing" && critical && (
         <div
@@ -283,18 +424,46 @@ export function HUD() {
         </div>
       )}
 
-      {/* Banner badai */}
+      {/* Banner badai (di bawah chip seed agar tidak tumpang tindih) */}
       {screen === "playing" && weather === "badai" && (
-        <div className="absolute left-1/2 top-3 -translate-x-1/2">
+        <div className="absolute left-1/2 top-14 z-10 -translate-x-1/2 sm:top-16">
           <div className="anim-danger flex items-center gap-2 rounded-full border border-red-300/40 bg-red-950/80 px-4 py-1.5 text-xs font-black tracking-wider text-red-100 backdrop-blur-md">
             ⛈️ BADAI — JANGAN DIAM DI TERBUKA
           </div>
         </div>
       )}
 
+      {/* Banner checkpoint */}
+      {screen === "playing" && <CheckpointBanner />}
+
+      {/* Chip seed ekspedisi + modifier */}
+      {screen === "playing" && (
+        <div className="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 flex-col items-center gap-1">
+          {weather !== "badai" && (
+            <div className="flex items-center gap-2 rounded-full border border-cyan-300/25 bg-slate-950/75 px-3.5 py-1 font-mono text-[11px] font-black tracking-wider text-cyan-200 backdrop-blur-md">
+              🗺️ {seedLabel}
+              <span className="text-white/40">•</span>
+              <span className="text-white/70">{mode === "harian" ? "Tantangan Harian" : "Standar"}</span>
+            </div>
+          )}
+          {modifiers.length > 0 && (
+            <div className="flex gap-1.5">
+              {modifiers.map((m) => (
+                <span
+                  key={m}
+                  className="rounded-full border border-fuchsia-300/25 bg-fuchsia-500/15 px-2 py-0.5 text-[10px] font-bold text-fuchsia-100 backdrop-blur-md"
+                >
+                  {m}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Panel status kiri atas */}
       {screen === "playing" && (
-        <div className="anim-fade-up absolute left-2 top-2 w-48 rounded-2xl border border-white/12 bg-slate-950/70 p-3 shadow-2xl backdrop-blur-md sm:left-3 sm:top-3 sm:w-60 sm:p-3.5">
+        <div className="anim-fade-up absolute left-2 top-2 w-44 rounded-2xl border border-white/12 bg-slate-950/70 p-3 shadow-2xl backdrop-blur-md sm:left-3 sm:top-3 sm:w-60 sm:p-3.5">
           <div className="mb-2.5 flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white/55">Kondisi tubuh</span>
             <span className="rounded-md bg-white/10 px-1.5 py-0.5 font-mono text-[11px] font-bold text-white/85">
@@ -317,7 +486,7 @@ export function HUD() {
           <div className="mt-2">
             <div className="mb-1 flex justify-between text-[11px] font-bold text-white/70">
               <span>🌸 Edelweiss</span>
-              <span className="font-mono">{edelweiss.length}/12</span>
+              <span key={edelweiss.length} className="anim-pop font-mono">{edelweiss.length}/12</span>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-black/60">
               <div
@@ -326,12 +495,18 @@ export function HUD() {
               />
             </div>
           </div>
+          <div className="mt-2 grid grid-cols-2 gap-1.5 text-[11px] font-bold text-white/70">
+            <span className="rounded-md bg-black/40 px-1.5 py-1">
+              📖 Catatan {notesRead.length}/{NOTES.length}
+            </span>
+            <span className="rounded-md bg-black/40 px-1.5 py-1">📷 Foto {photoScore}</span>
+          </div>
         </div>
       )}
 
       {/* Kompas + minimap kanan atas */}
       {screen === "playing" && (
-        <div className="anim-fade-up stagger-1 absolute right-2 top-2 flex w-40 flex-col items-stretch gap-2 sm:right-3 sm:top-3 sm:w-48">
+        <div className="anim-fade-up stagger-1 absolute right-2 top-2 flex w-36 flex-col items-stretch gap-2 sm:right-3 sm:top-3 sm:w-48">
           <div className="rounded-2xl border border-white/12 bg-slate-950/70 px-3.5 py-3 shadow-2xl backdrop-blur-md">
             <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-white/55">
               🧭 Tujuan
@@ -358,33 +533,34 @@ export function HUD() {
               <span className="text-[10px] font-bold text-white/40">U ▲</span>
             </div>
             <div className="flex justify-center px-2 pb-1">
-              <Minimap checkpointIndex={checkpointIndex} />
+              <Minimap checkpointIndex={checkpointIndex} hasKompas={hasKompas} weather={weather} />
             </div>
             <div className="flex items-center justify-center gap-3 border-t border-white/10 px-2 py-1.5 text-[10px] font-semibold text-white/55">
               <span><i className="mr-1 inline-block h-1.5 w-3 rounded-full bg-[#e8c07a]" />Jalur</span>
               <span><i className="mr-1 inline-block h-1.5 w-3 rounded-full bg-[#fb923c]" />Pintas</span>
               <span><i className="mr-1 inline-block h-1.5 w-3 rounded-full bg-[#0ea5e9]" />Sungai</span>
+              {hasKompas && <span><i className="mr-1 inline-block h-1.5 w-3 rounded-full bg-[#22d3ee]" />Kompas</span>}
             </div>
           </div>
         </div>
       )}
 
-      {/* Inventory kiri bawah */}
+      {/* Inventory kiri bawah (2 baris: item survival + item ekspedisi) */}
       {screen === "playing" && (
         <div className="anim-fade-up stagger-2 absolute bottom-2 left-2 sm:bottom-3 sm:left-3">
           <div className="mb-1.5 ml-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/55 drop-shadow">
             Inventaris
           </div>
-          <div className="pointer-events-auto flex gap-2">
+          <div className="pointer-events-auto grid grid-cols-4 gap-2">
             {INVENTORY_SLOTS.map((slot) => {
-              const count = inventory[slot.id];
+              const count = inventory[slot.id] ?? 0;
               const empty = count <= 0;
               return (
                 <button
                   key={slot.id}
                   onClick={() => consumeItem(slot.id)}
                   disabled={empty}
-                  className={`btn-game group relative flex w-[62px] flex-col items-center rounded-xl border px-1 pb-1.5 pt-2 backdrop-blur-md sm:w-[74px] ${
+                  className={`btn-game group relative flex w-[54px] flex-col items-center rounded-xl border px-1 pb-1.5 pt-2 backdrop-blur-md sm:w-[74px] ${
                     empty
                       ? "border-white/10 bg-slate-950/50 opacity-45"
                       : "border-white/15 bg-slate-950/70 shadow-xl hover:border-emerald-300/40"
@@ -404,9 +580,16 @@ export function HUD() {
         </div>
       )}
 
-      {/* Tombol MENU + mute kanan bawah */}
+      {/* Tombol MENU + ghost + mute kanan bawah */}
       {screen === "playing" && (
         <div className="pointer-events-auto absolute bottom-2 right-2 flex gap-2 sm:bottom-3 sm:right-3">
+          <button
+            onClick={toggleGhost}
+            className="btn-game rounded-xl border border-white/15 bg-slate-950/70 px-3.5 py-2.5 text-base shadow-xl backdrop-blur-md"
+            title={ghostEnabled ? "Sembunyikan ghost run" : "Tampilkan ghost run"}
+          >
+            {ghostEnabled ? "👻" : "👓"}
+          </button>
           <button
             onClick={toggleMute}
             className="btn-game rounded-xl border border-white/15 bg-slate-950/70 px-3.5 py-2.5 text-base shadow-xl backdrop-blur-md"
@@ -434,7 +617,11 @@ export function HUD() {
             <span className="text-white/25">•</span>
             <span className="kbd">Shift</span> lari
             <span className="text-white/25">•</span>
-            <span className="kbd">E</span> tenda / petik
+            <span className="kbd">E</span> tenda / petik / catatan
+            <span className="text-white/25">•</span>
+            <span className="kbd">F</span> foto satwa
+            <span className="text-white/25">•</span>
+            <span className="kbd">1–4</span>/<span className="kbd">QRTG</span> item
             <span className="text-white/25">•</span>
             klik kanvas = kunci mouse
           </div>
@@ -450,6 +637,9 @@ export function HUD() {
             <p className="mt-1 text-xs font-semibold text-white/55">
               {CHECKPOINTS[checkpointIndex].name} • {Math.round(playerPos[1])} mdpl • {formatClock(timeOfDay)}
             </p>
+            <div className="mt-1 font-mono text-[11px] font-bold text-cyan-200/80">
+              {seedLabel} • 📖 {notesRead.length}/{NOTES.length} • 📷 {photoScore}
+            </div>
             <div className="mx-auto mt-3 grid max-w-[240px] grid-cols-3 gap-1.5 text-[11px] font-bold text-white/70">
               <div className="rounded-lg bg-black/40 px-2 py-1.5">⚡ {stamina}</div>
               <div className="rounded-lg bg-black/40 px-2 py-1.5">🌡️ {suhu}</div>
@@ -466,6 +656,9 @@ export function HUD() {
                 <button onClick={toggleMute} className="btn-game flex-1 rounded-xl border border-white/12 bg-white/5 px-4 py-2 text-sm font-bold text-white/80 hover:bg-white/10">
                   {muted ? "🔇 Mute" : "🔊 Suara"}
                 </button>
+                <button onClick={toggleGhost} className="btn-game flex-1 rounded-xl border border-white/12 bg-white/5 px-4 py-2 text-sm font-bold text-white/80 hover:bg-white/10">
+                  {ghostEnabled ? "👻 Ghost On" : "👓 Ghost Off"}
+                </button>
                 <button onClick={toMenu} className="btn-game flex-1 rounded-xl border border-white/12 bg-white/5 px-4 py-2 text-sm font-bold text-white/80 hover:bg-white/10">
                   🏠 Menu
                 </button>
@@ -475,7 +668,9 @@ export function HUD() {
               <span className="kbd">WASD</span>
               <span className="kbd">Shift</span>
               <span className="kbd">E</span>
+              <span className="kbd">F</span>
               <span className="kbd">1–4</span>
+              <span className="kbd">QRTG</span>
             </div>
           </div>
         </div>
@@ -519,9 +714,32 @@ export function HUD() {
                 <div className="text-[10px] font-black uppercase tracking-widest text-white/45">❤️ Sisa</div>
                 <div className="font-mono text-sm font-black text-white">⚡{stamina} 🌡️{suhu} 🫁{oksigen}</div>
               </div>
+              <div className="rounded-xl border border-white/10 bg-black/40 p-3">
+                <div className="text-[10px] font-black uppercase tracking-widest text-white/45">📖 / 📷</div>
+                <div className="font-mono text-sm font-black text-white">
+                  {notesRead.length}/{NOTES.length} catatan • {photoScore} foto
+                </div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/40 p-3">
+                <div className="text-[10px] font-black uppercase tracking-widest text-white/45">🥾 Jarak</div>
+                <div className="font-mono text-sm font-black text-white">{Math.round(runDistance)} m</div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/40 p-3">
+                <div className="text-[10px] font-black uppercase tracking-widest text-white/45">🗺️ Seed</div>
+                <div className="truncate font-mono text-sm font-black text-cyan-200">
+                  {seedLabel} • {mode === "harian" ? "Harian" : "Standar"}
+                </div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/40 p-3">
+                <div className="text-[10px] font-black uppercase tracking-widest text-white/45">🏅 Peringkat</div>
+                <div className="font-mono text-lg font-black text-amber-200">{screen === "won" ? rank : "—"}</div>
+              </div>
             </div>
             <div className="mt-2 rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-[11px] font-semibold text-white/55">
               🎒 Dipakai: {itemsUsedText}
+              {screen === "won" && loadGhost() && ghostEligible(loadGhost(), mode, seed) && ghostEnabled && (
+                <span className="ml-2 text-cyan-300">• 👻 ghost terbaik tersimpan</span>
+              )}
             </div>
             <div className="mt-4 flex flex-col gap-2">
               <button

@@ -11,12 +11,14 @@ import { playerState } from "./playerRef";
 export function Hiker() {
   const root = useRef<THREE.Group>(null);
   const inner = useRef<THREE.Group>(null);
+  const torso = useRef<THREE.Group>(null);
   const legL = useRef<THREE.Group>(null);
   const legR = useRef<THREE.Group>(null);
   const armL = useRef<THREE.Group>(null);
   const armR = useRef<THREE.Group>(null);
   const phase = useRef(0);
   const time = useRef(0);
+  const blend = useRef(0);
 
   useShadows(root);
 
@@ -29,18 +31,35 @@ export function Hiker() {
     g.position.copy(playerState.pos);
     g.rotation.y = lerpAngle(g.rotation.y, playerState.faceYaw, Math.min(1, dt * 10));
 
-    if (playerState.moving) phase.current += dt * 9;
-    const swing = playerState.moving ? Math.sin(phase.current) * 0.55 : 0;
+    // Blend pose berjalan ↔ diam (~0,2 dtk) agar ayunan tidak snap
+    const targetBlend = playerState.moving ? 1 : 0;
+    blend.current += (targetBlend - blend.current) * Math.min(1, dt / 0.2);
+    phase.current += (playerState.speed / 2.0) * Math.PI * 2 * dt;
+
+    const amp = 0.55 * blend.current;
+    const swing = Math.sin(phase.current) * amp;
     if (legL.current) legL.current.rotation.x = swing;
     if (legR.current) legR.current.rotation.x = -swing;
     if (armL.current) armL.current.rotation.x = -swing * 0.7;
     if (armR.current) armR.current.rotation.x = swing * 0.7;
-    // Condong badan ke depan saat jalan + napas idle
+    // Condong badan ke depan saat jalan + lean tanjakan + napas idle
     if (inner.current) {
-      inner.current.position.y = playerState.moving
+      const air = playerState.grounded ? 0 : 1;
+      inner.current.position.y = blend.current > 0.5
         ? Math.abs(Math.cos(phase.current)) * 0.05
         : Math.sin(time.current * 2) * 0.02;
-      inner.current.rotation.x += ((playerState.moving ? 0.08 : 0) - inner.current.rotation.x) * Math.min(1, dt * 5);
+      const leanTarget = playerState.moving ? 0.08 : 0;
+      inner.current.rotation.x += (leanTarget - inner.current.rotation.x) * Math.min(1, dt * 5);
+      inner.current.rotation.z += (playerState.lean - inner.current.rotation.z) * Math.min(1, dt * 6);
+      if (air > 0) {
+        inner.current.rotation.x += (0.12 - inner.current.rotation.x) * Math.min(1, dt * 5);
+        if (legL.current) legL.current.rotation.x = 0.35;
+        if (legR.current) legR.current.rotation.x = -0.2;
+      }
+    }
+    // Tongkat mengikuti badan (torso), tidak ikut ayunan lengan
+    if (torso.current) {
+      torso.current.rotation.x = playerState.moving ? 0.04 : 0;
     }
   });
 
@@ -68,15 +87,21 @@ export function Hiker() {
           </group>
         ))}
         {/* Torso jaket + resleting + tali dada */}
-        <mesh position={[0, 1.2, 0]} material={sharedMat("#f97316", 0.75)}>
-          <boxGeometry args={[0.55, 0.75, 0.35]} />
-        </mesh>
-        <mesh position={[0, 1.2, 0.26]} material={sharedMat("#7c2d12", 0.8)}>
-          <boxGeometry args={[0.05, 0.55, 0.02]} />
-        </mesh>
-        <mesh position={[0, 1.32, 0.245]} material={sharedMat("#431407", 0.8)}>
-          <boxGeometry args={[0.3, 0.05, 0.02]} />
-        </mesh>
+        <group ref={torso} position={[0, 0, 0]}>
+          <mesh position={[0, 1.2, 0]} material={sharedMat("#f97316", 0.75)}>
+            <boxGeometry args={[0.55, 0.75, 0.35]} />
+          </mesh>
+          <mesh position={[0, 1.2, 0.26]} material={sharedMat("#7c2d12", 0.8)}>
+            <boxGeometry args={[0.05, 0.55, 0.02]} />
+          </mesh>
+          <mesh position={[0, 1.32, 0.245]} material={sharedMat("#431407", 0.8)}>
+            <boxGeometry args={[0.3, 0.05, 0.02]} />
+          </mesh>
+          {/* Tongkat mendaki di tangan kanan: pangkal di bahu, ujung di tanah */}
+          <mesh position={[0.5, 0.55, 0.2]} rotation={[0.08, 0, -0.06]} material={sharedMat("#a8a29e", 0.5, { metalness: 0.4 })}>
+            <boxGeometry args={[0.06, 1.1, 0.06]} />
+          </mesh>
+        </group>
         {/* Tali carrier di bahu */}
         {[-0.16, 0.16].map((x, i) => (
           <mesh key={i} position={[x, 1.3, 0.2]} rotation={[0.15, 0, 0]} material={sharedMat("#14532d")}>
@@ -110,11 +135,6 @@ export function Hiker() {
             <mesh position={[0, -0.58, 0]} material={sharedMat("#292524")}>
               <boxGeometry args={[0.16, 0.16, 0.16]} />
             </mesh>
-            {x > 0 && (
-              <mesh position={[0, -0.6, 0.15]} rotation={[0.25, 0, 0]} material={sharedMat("#a8a29e", 0.5, { metalness: 0.4 })}>
-                <boxGeometry args={[0.06, 1.1, 0.06]} />
-              </mesh>
-            )}
           </group>
         ))}
         {/* Tudung jaket terlipat di leher */}

@@ -66,11 +66,11 @@ export function VoxelWorld() {
       if (!byType.has(c.type)) byType.set(c.type, []);
       byType.get(c.type)!.push(c);
     }
-    // Tiap kolom: blok atas + 1 blok pengisi di bawahnya (tebing terlihat padat)
+    // Tiap kolom: blok atas + 4 blok pengisi di bawahnya (tebing terlihat padat)
     for (const t of GROUND_TYPES) {
       const list = byType.get(t) ?? [];
       if (list.length === 0) continue;
-      const count = list.length * 2;
+      const count = list.length * 5;
       const mat = new THREE.MeshLambertMaterial({ color: "#ffffff" });
       const m = new THREE.InstancedMesh(geo.clone(), mat, count);
       let i = 0;
@@ -83,11 +83,13 @@ export function VoxelWorld() {
         m.setMatrixAt(i, dummy.matrix);
         m.setColorAt(i, blockTint(c.type, c.bx, c.bz));
         i++;
-        dummy.position.set(x, c.top - BLOCK * 1.5, z);
-        dummy.updateMatrix();
-        m.setMatrixAt(i, dummy.matrix);
-        m.setColorAt(i, blockTint(c.top > 28 ? "stone" : "dirt", c.bx, c.bz + 999));
-        i++;
+        for (let layer = 1; layer <= 4; layer++) {
+          dummy.position.set(x, c.top - BLOCK * (layer + 0.5), z);
+          dummy.updateMatrix();
+          m.setMatrixAt(i, dummy.matrix);
+          m.setColorAt(i, blockTint(c.top > 28 ? "stone" : "dirt", c.bx, c.bz + 999));
+          i++;
+        }
       }
       m.instanceMatrix.needsUpdate = true;
       if (m.instanceColor) m.instanceColor.needsUpdate = true;
@@ -187,7 +189,7 @@ export function VoxelWorld() {
         <primitive key={i} object={m} />
       ))}
       {hover && (
-        <mesh position={[hover[0], hover[1] + 0.02, hover[2]]}>
+        <mesh position={[hover[0], hover[1] - BLOCK / 2 + 0.02, hover[2]]}>
           <boxGeometry args={[BLOCK + 0.06, BLOCK + 0.06, BLOCK + 0.06]} />
           <meshBasicMaterial color="#ffffff" wireframe transparent opacity={0.9} />
         </mesh>

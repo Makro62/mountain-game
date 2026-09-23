@@ -6,9 +6,9 @@
 
 export const WORLD_SIZE = 400;
 export const WORLD_BOUND = 195;
-export const WALK_SPEED = 6;
-export const SPRINT_SPEED = 10;
-export const JUMP_SPEED = 4.5;
+export const WALK_SPEED = 4;
+export const SPRINT_SPEED = 7;
+export const JUMP_SPEED = 5;
 export const PICKUP_RADIUS = 3;
 /** Batas ketinggian hutan (pohon & rusa hanya di bawah ini). */
 export const TREE_LINE = 26;
@@ -79,7 +79,7 @@ export const FORKS = [
   { x: 7, z: -15, name: "Simpang B", main: "jalur aman berkelok", alt: "pintasan ke Pos 3", mainX: 24, mainZ: -32, altX: 11, altZ: -42 },
 ];
 
-export type ItemId = "bekal" | "jaket" | "p3k" | "oksigen";
+export type ItemId = "bekal" | "jaket" | "p3k" | "oksigen" | "tali" | "kompas" | "termos" | "peluit";
 
 export interface LootSpot {
   id: string;
@@ -99,6 +99,64 @@ export const LOOT_SPOTS: LootSpot[] = [
   { id: "l8", item: "oksigen", x: 10, z: -75 },
   { id: "l9", item: "oksigen", x: -19, z: -108 },
   { id: "l10", item: "p3k", x: -13, z: -124 },
+  { id: "l11", item: "kompas", x: -8, z: 96 },
+  { id: "l12", item: "tali", x: -11, z: 50 },
+  { id: "l13", item: "termos", x: 8, z: -30 },
+  { id: "l14", item: "peluit", x: 4, z: -72 },
+  { id: "l15", item: "tali", x: 11, z: -42 },
+  { id: "l16", item: "kompas", x: -16, z: -110 },
+];
+
+export interface LoreNote {
+  id: string;
+  title: string;
+  text: string;
+  x: number;
+  z: number;
+}
+
+/** Catatan jurnal ekspedisi yang bisa dibaca (interaksi E). */
+export const NOTES: LoreNote[] = [
+  {
+    id: "n1",
+    title: "Buku Tamu Basecamp",
+    text:
+      "Hari ke-3 di Gunung Nusantara. Kabut pagi tebal sekali, tapi porter sudah membawa semua perbekalan ke Pos 1. Pak Karna bilang: \"Jangan pernah menyalakan api unggun sebelum hujan reda.\" Semoga jalur utama tidak longsor seperti tahun lalu. — Ratih, ketua tim",
+    x: -4,
+    z: 147,
+  },
+  {
+    id: "n2",
+    title: "Surat dari Pos 1",
+    text:
+      "Kalau kamu menemukan kertas ini, berarti kamu sudah melewati gapura. Simpan tenaga — tanjakan setelah jembatan jauh lebih curam dari yang terlihat. Aku meninggalkan sebungkus nasi cadangan di bawah batu merah. Jangan lupa minum. — Dimas",
+    x: 5,
+    z: 83,
+  },
+  {
+    id: "n3",
+    title: "Catatan di Jembatan Kayu",
+    text:
+      "Air sungai sedang deras. Lewati jembatan satu per satu, jangan berhenti di tengah. Di sisi timur ada pintasan oranye — hemat waktu tapi menguras napas. Pilih sesuai sisa staminamu. Pemandu kita, Pak Harun",
+    x: 3,
+    z: 44,
+  },
+  {
+    id: "n4",
+    title: "Jurnal Pos 3 — Zona Batu",
+    text:
+      "Badai sore tadi membuat tiga batu jatuh di atas tenda. Kami pindah ke sisi utara. Kalau langit menggelap dan guruh mulai bunyi, JANGAN diam di area terbuka. Edelweiss mulai terlihat di kejauhan — puncak sudah tidak jauh. — Sari, dokter tim",
+    x: 9,
+    z: -66,
+  },
+  {
+    id: "n5",
+    title: "Terakhir Sebelum Puncak",
+    text:
+      "Tulisanku gemetar karena dingin. Di depan sana garis salju putih membentang, dan di tengahnya bunga edelweiss mekar. Berapa pun hasilku hari ini, gunung ini sudah mengajarkan satu hal: napas panjang, langkah pendek. Sampai jumpa di puncak. — Ratih",
+    x: -12,
+    z: -104,
+  },
 ];
 
 /** Edelweiss langka di zona salju (kolektibel via tombol E). */

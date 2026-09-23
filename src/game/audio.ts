@@ -55,26 +55,47 @@ function tone(freqFrom: number, freqTo: number, dur: number, type: OscillatorTyp
   }
 }
 
-export function playStep(): void {
+export type Surface = "grass" | "snow" | "rock" | "wood" | "water";
+
+interface SurfaceParams {
+  dur: number;
+  cutoff: number;
+  type: BiquadFilterType;
+  gain: number;
+  q: number;
+}
+
+const SURFACE_PARAMS: Record<Surface, SurfaceParams> = {
+  grass: { dur: 0.12, cutoff: 500, type: "lowpass", gain: 0.12, q: 0.7 },
+  snow: { dur: 0.16, cutoff: 1400, type: "lowpass", gain: 0.09, q: 0.5 },
+  rock: { dur: 0.08, cutoff: 2200, type: "bandpass", gain: 0.13, q: 1.2 },
+  wood: { dur: 0.1, cutoff: 350, type: "bandpass", gain: 0.16, q: 4 },
+  water: { dur: 0.18, cutoff: 900, type: "lowpass", gain: 0.1, q: 0.6 },
+};
+
+export function playStep(surface: Surface = "grass"): void {
   const now = performance.now();
   if (now - lastStep < 350) return;
   lastStep = now;
   const ac = ensureCtx();
   if (!ac || muted()) return;
   try {
-    const dur = 0.12;
-    const buffer = ac.createBuffer(1, ac.sampleRate * dur, ac.sampleRate);
+    const p = SURFACE_PARAMS[surface];
+    const buffer = ac.createBuffer(1, ac.sampleRate * p.dur, ac.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
     const src = ac.createBufferSource();
     src.buffer = buffer;
     const f = ac.createBiquadFilter();
-    f.type = "lowpass";
-    f.frequency.value = 400;
+    f.type = p.type;
+    f.frequency.value = p.cutoff;
+    f.Q.value = p.q;
     const g = ac.createGain();
-    g.gain.value = 0.12;
+    g.gain.value = p.gain;
     src.connect(f).connect(g).connect(ac.destination);
     src.start();
+    if (surface === "wood") tone(180, 90, 0.08, "sine", 0.06);
+    if (surface === "water") tone(520, 260, 0.14, "sine", 0.05);
   } catch {
     /* abaikan */
   }
@@ -109,6 +130,71 @@ export function playRock(): void {
 
 export function playTent(): void {
   tone(400, 600, 0.2, "sine", 0.14);
+}
+
+/** Guntur badai: ledakan noise pendek + guncangan frekuensi rendah. */
+export function playThunder(): void {
+  const ac = ensureCtx();
+  if (!ac || muted()) return;
+  try {
+    const dur = 0.25;
+    const buffer = ac.createBuffer(1, ac.sampleRate * dur, ac.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 1.5);
+    const src = ac.createBufferSource();
+    src.buffer = buffer;
+    const f = ac.createBiquadFilter();
+    f.type = "lowpass";
+    f.frequency.value = 400;
+    const g = ac.createGain();
+    g.gain.value = 0.35;
+    src.connect(f).connect(g).connect(ac.destination);
+    src.start();
+    const dur2 = 1.4;
+    const buffer2 = ac.createBuffer(1, ac.sampleRate * dur2, ac.sampleRate);
+    const data2 = buffer2.getChannelData(0);
+    for (let i = 0; i < data2.length; i++) data2[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data2.length, 2.5);
+    const src2 = ac.createBufferSource();
+    src2.buffer = buffer2;
+    const f2 = ac.createBiquadFilter();
+    f2.type = "lowpass";
+    f2.frequency.value = 120;
+    const g2 = ac.createGain();
+    g2.gain.value = 0.3;
+    src2.connect(f2).connect(g2).connect(ac.destination);
+    src2.start(0.12);
+  } catch {
+    /* abaikan */
+  }
+  tone(70, 40, 1.2, "sine", 0.1, 0.1);
+}
+
+/** Catatan lore dibaca: chime halus seperti halaman dibalik. */
+export function playNote(): void {
+  tone(740, 660, 0.12, "sine", 0.1);
+  tone(988, 880, 0.18, "sine", 0.08, 0.1);
+}
+
+/** Rana kamera: klik pendek dua nada + noise. */
+export function playShutter(): void {
+  tone(1800, 900, 0.04, "square", 0.06);
+  tone(1200, 700, 0.05, "square", 0.05, 0.06);
+  const ac = ensureCtx();
+  if (!ac || muted()) return;
+  try {
+    const dur = 0.03;
+    const buffer = ac.createBuffer(1, ac.sampleRate * dur, ac.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+    const src = ac.createBufferSource();
+    src.buffer = buffer;
+    const g = ac.createGain();
+    g.gain.value = 0.12;
+    src.connect(g).connect(ac.destination);
+    src.start(0.05);
+  } catch {
+    /* abaikan */
+  }
 }
 
 /** Bunyi blok dihancurkan: noise kasar pendek (ala gali tanah MC). */

@@ -10,4 +10,10 @@ export const playerState = {
   /** Arah hadap karakter (radian, 0 = +Z). Diupdate saat bergerak. */
   faceYaw: Math.PI,
   moving: false,
+  /** Kecepatan horizontal (m/s) — dipakai stride kaki Hiker. */
+  speed: 0,
+  /** True bila menempel tanah (pose lompat & auto-step). */
+  grounded: true,
+  /** Lean badan mengikuti kemiringan tanjakan (radian, clamp ±0.35). */
+  lean: 0,
 };

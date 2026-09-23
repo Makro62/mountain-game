@@ -4,6 +4,7 @@ import {
   BRIDGE,
   CHECKPOINTS,
   LOOT_SPOTS,
+  SNOW_LINE,
   TREE_LINE,
   WORLD_BOUND,
   distToTrail,
@@ -11,7 +12,8 @@ import {
   riverCenterX,
 } from "./terrain";
 import { mulberry32 } from "./modelKit";
-import { blockTopNatural } from "./voxel";
+import { blockTopNatural, getVoxelTop, type VoxelEdits } from "./voxel";
+import { useMountainStore } from "./store";
 
 interface Spot {
   x: number;
@@ -45,6 +47,29 @@ function scatter(count: number, seed: number, accept: (x: number, z: number) => 
     out.push({ x, y: blockTopNatural(x, z), z, s: 0.7 + rand() * 0.7, rot: rand() * Math.PI * 2, tint: rand() });
   }
   return out;
+}
+
+/** Semai statis deterministik (dipakai juga collider pemain). */
+export const TREE_SPOTS = scatter(700, 7, (x, z) => !nearTrailOrCamp(x, z, 5) && getHeight(x, z) < TREE_LINE);
+export const ROCK_SPOTS = scatter(300, 21, (x, z) => {
+  if (distToTrail(x, z) < 4) return false;
+  for (const cp of CHECKPOINTS) {
+    if (Math.hypot(x - cp.x, z - cp.z) < cp.radius + 3) return false;
+  }
+  if (Math.hypot(x - BRIDGE.x, z - BRIDGE.z) < 8) return false;
+  return getHeight(x, z) < 58;
+});
+const BIRCH_SPOTS = scatter(220, 63, (x, z) => !nearTrailOrCamp(x, z, 5) && getHeight(x, z) < 12);
+const SHRUB_SPOTS = scatter(500, 77, (x, z) => {
+  if (nearTrailOrCamp(x, z, 3.5)) return false;
+  const h = getHeight(x, z);
+  return h > 8 && h < 30;
+});
+const GRASS_SPOTS = scatter(800, 42, (x, z) => !nearTrailOrCamp(x, z, 3) && getHeight(x, z) < TREE_LINE);
+
+/** Re-ground Y ke permukaan voxel terkini (mengikuti edit gali/pasang pemain). */
+function reground(spots: Spot[], edits: VoxelEdits): Spot[] {
+  return spots.map((s) => ({ ...s, y: getVoxelTop(s.x, s.z, edits) }));
 }
 
 type Placer = (m: THREE.InstancedMesh, s: Spot, dummy: THREE.Object3D, i: number) => void;
@@ -100,9 +125,9 @@ function yawOff(ox: number, oz: number, rot: number): [number, number] {
   return [ox * c + oz * s, -ox * s + oz * c];
 }
 
-/** Pucat salju untuk pinus tinggi (0 rendah → 1 di atas ~26 mdpl). */
+/** Pucat salju untuk pinus tinggi (0 di bawah → 1 menuju SNOW_LINE). */
 function snowPallor(y: number): number {
-  return Math.max(0, Math.min(1, (y - 14) / 12));
+  return Math.max(0, Math.min(1, (y - 16) / (SNOW_LINE - 16)));
 }
 
 function pineTint(baseH: number, baseS: number, baseL: number) {
@@ -121,7 +146,8 @@ function pineTint(baseH: number, baseS: number, baseL: number) {
 
 /** Hutan pinus: akar, batang, 4 tajuk berlapis, pucuk. */
 export function Trees() {
-  const spots = useMemo(() => scatter(700, 7, (x, z) => !nearTrailOrCamp(x, z, 5) && getHeight(x, z) < TREE_LINE), []);
+  const edits = useMountainStore((s) => s.edits);
+  const spots = useMemo(() => reground(TREE_SPOTS, edits), [edits]);
 
   const roots = useInstanced(
     spots,
@@ -185,10 +211,8 @@ export function Trees() {
 
 /** Birch putih bercabang di zona rendah. */
 export function Birches() {
-  const spots = useMemo(
-    () => scatter(220, 63, (x, z) => !nearTrailOrCamp(x, z, 5) && getHeight(x, z) < 12),
-    []
-  );
+  const edits = useMountainStore((s) => s.edits);
+  const spots = useMemo(() => reground(BIRCH_SPOTS, edits), [edits]);
   const trunks = useInstanced(
     spots,
     useMemo(() => new THREE.BoxGeometry(0.4, 2.8, 0.4), []),
@@ -259,15 +283,8 @@ export function Birches() {
 
 /** Semak belukar zona menengah. */
 export function Shrubs() {
-  const spots = useMemo(
-    () =>
-      scatter(500, 77, (x, z) => {
-        if (nearTrailOrCamp(x, z, 3.5)) return false;
-        const h = getHeight(x, z);
-        return h > 8 && h < 30;
-      }),
-    []
-  );
+  const edits = useMountainStore((s) => s.edits);
+  const spots = useMemo(() => reground(SHRUB_SPOTS, edits), [edits]);
   const shrubs = useInstanced(
     spots,
     useMemo(() => new THREE.BoxGeometry(0.9, 0.6, 0.9), []),
@@ -287,18 +304,8 @@ export function Shrubs() {
 
 /** Batu-batu gunung (zona batu & lereng). */
 export function Rocks() {
-  const spots = useMemo(
-    () =>
-      scatter(300, 21, (x, z) => {
-        if (distToTrail(x, z) < 4) return false;
-        for (const cp of CHECKPOINTS) {
-          if (Math.hypot(x - cp.x, z - cp.z) < cp.radius + 3) return false;
-        }
-        if (Math.hypot(x - BRIDGE.x, z - BRIDGE.z) < 8) return false;
-        return getHeight(x, z) < 58;
-      }),
-    []
-  );
+  const edits = useMountainStore((s) => s.edits);
+  const spots = useMemo(() => reground(ROCK_SPOTS, edits), [edits]);
   const rocks = useInstanced(
     spots,
     useMemo(() => new THREE.BoxGeometry(1.2, 0.9, 1.2), []),
@@ -318,7 +325,8 @@ export function Rocks() {
 
 /** Rerumputan pendek di zona hijau. */
 export function GrassTufts() {
-  const spots = useMemo(() => scatter(800, 42, (x, z) => !nearTrailOrCamp(x, z, 3) && getHeight(x, z) < TREE_LINE), []);
+  const edits = useMountainStore((s) => s.edits);
+  const spots = useMemo(() => reground(GRASS_SPOTS, edits), [edits]);
   const grass = useInstanced(
     spots,
     useMemo(() => new THREE.BoxGeometry(0.28, 0.75, 0.28), []),
