@@ -355,8 +355,7 @@ export function HUD() {
   const timeOfDay = useMountainStore((s) => s.timeOfDay);
   const isNight = timeOfDay > 0.55 && timeOfDay < 0.95;
   const edelweiss = useMountainStore((s) => s.edelweiss);
-  const startedAt = useMountainStore((s) => s.startedAt);
-  const endedAt = useMountainStore((s) => s.endedAt);
+  const playMs = useMountainStore((s) => s.playMs);
   const mode = useMountainStore((s) => s.mode);
   const seed = useMountainStore((s) => s.seed);
   const modifiers = useMountainStore((s) => s.modifiers);
@@ -377,7 +376,8 @@ export function HUD() {
   const dx = nextCp.x - playerPos[0];
   const dz = nextCp.z - playerPos[2];
   const dist = Math.hypot(dx, dz);
-  const elapsed = (endedAt ?? Date.now()) - (startedAt ?? Date.now());
+  // Waktu main aktif (playMs) — pause/menu tidak menambah waktu; rank & ghost jadi adil
+  const elapsed = playMs;
   const itemsUsedText = Object.entries(itemsUsed).map(([id, count]) => `${count}× ${id}`).join(" • ") || "belum pakai item";
   const wMeta = WEATHER_META[weather];
   const critical = stamina <= 20 || suhu <= 20;
@@ -737,7 +737,7 @@ export function HUD() {
             </div>
             <div className="mt-2 rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-[11px] font-semibold text-white/55">
               🎒 Dipakai: {itemsUsedText}
-              {screen === "won" && loadGhost() && ghostEligible(loadGhost(), mode, seed) && ghostEnabled && (
+              {screen === "won" && loadGhost(mode) && ghostEligible(loadGhost(mode), mode, seed) && ghostEnabled && (
                 <span className="ml-2 text-cyan-300">• 👻 ghost terbaik tersimpan</span>
               )}
             </div>

@@ -4,6 +4,7 @@ import { CHECKPOINTS, SNOW_LINE, type ItemId } from "./terrain";
 import { BLOCK, blockKey, blockTopNatural, getVoxelTop, type BlockType, type VoxelEdits } from "./voxel";
 import { dailySeedString, hashSeed, randomSeed, rollExpedition, seedCode, weatherPoolFor, type GameMode } from "./expedition";
 import { ghostReset, saveGhostIfBest } from "./ghost";
+import { syncMute } from "./audio";
 
 export type Screen = "menu" | "playing" | "paused" | "won" | "lost";
 export type Weather = "cerah" | "kabut" | "hujan" | "badai";
@@ -35,6 +36,12 @@ interface MountainState {
   timeOfDay: number; // 0..1 (0=pagi, 0.5=malam)
   startedAt: number | null;
   endedAt: number | null;
+  /** Akumulasi waktu main aktif (detik→ms) — tidak termasuk pause/menu. */
+  playMs: number;
+  /** Nomor run — tiap startNew/startExpedition/continue naik → Player re-init posisi. */
+  runId: number;
+  /** Cooldown tenda (ms) — cegah spam E meng heal tanpa henti. */
+  lastTentAt: number;
   message: string;
   messageAt: number;
   muted: boolean;
@@ -122,6 +129,8 @@ function runDefaults(startedAt: number | null): Partial<MountainState> {
     timeOfDay: 0.25,
     startedAt,
     endedAt: null,
+    playMs: 0,
+    lastTentAt: 0,
     edits: {},
     selectedBlock: "dirt",
     buildMode: true,
@@ -155,6 +164,9 @@ export const useMountainStore = create<MountainState>()(
       timeOfDay: 0.25,
       startedAt: null,
       endedAt: null,
+      playMs: 0,
+      runId: 0,
+      lastTentAt: 0,
       message: "",
       messageAt: 0,
       muted: false,
@@ -183,6 +195,7 @@ export const useMountainStore = create<MountainState>()(
           screen: "playing",
           mode,
           seed,
+          runId: get().runId + 1,
           modifiers: plan.modifiers,
           weather: plan.startWeather,
           ...runDefaults(Date.now()),
@@ -201,6 +214,7 @@ export const useMountainStore = create<MountainState>()(
         set({
           screen: "playing",
           weather: plan.startWeather,
+          runId: s.runId + 1,
           ...runDefaults(Date.now()),
           message:
             s.seed === 0
@@ -212,13 +226,24 @@ export const useMountainStore = create<MountainState>()(
 
       continueGame: () => {
         const s = get();
+        // Save sudah 100% (puncak) → jangan lanjut stuck di menang; mulai run baru
+        if (s.checkpointIndex >= CHECKPOINTS.length - 1) {
+          get().startNew();
+          return;
+        }
         // Jepret ke pos terakhir (save lama dari jalur lurus tetap valid; Y di-snap ke voxel)
         const cp = CHECKPOINTS[s.checkpointIndex] ?? CHECKPOINTS[0];
         set({
           screen: "playing",
+          runId: s.runId + 1,
           playerPos: [cp.x, getVoxelTop(cp.x, cp.z, s.edits) + 1.7, cp.z],
+          // Lantai vitals: kematian hipotermia mempersist suhu 0 → tanpa ini Continue = mati instan
+          stamina: Math.max(s.stamina, 30),
+          suhu: Math.max(s.suhu, 30),
+          oksigen: Math.max(s.oksigen, 30),
           startedAt: s.startedAt ?? Date.now(),
           endedAt: null,
+          lastTentAt: 0,
           openNote: null,
           message: `Lanjutkan dari ${cp.name}!`,
           messageAt: Date.now(),
@@ -242,7 +267,12 @@ export const useMountainStore = create<MountainState>()(
         });
       },
 
-      toggleMute: () => set((s) => ({ muted: !s.muted })),
+      toggleMute: () =>
+        set((s) => {
+          const muted = !s.muted;
+          syncMute(muted);
+          return { muted };
+        }),
       toggleGhost: () => set((s) => ({ ghostEnabled: !s.ghostEnabled })),
 
       setSelectedBlock: (b) => set({ selectedBlock: b }),
@@ -337,6 +367,7 @@ export const useMountainStore = create<MountainState>()(
           weather,
           weatherTimer,
           timeOfDay,
+          playMs: s.playMs + step * 1000,
         };
 
         if (stamina <= 0 || suhu <= 0) {
@@ -500,7 +531,7 @@ export const useMountainStore = create<MountainState>()(
           saveGhostIfBest({
             seed: s.seed,
             mode: s.mode,
-            timeMs: Date.now() - (s.startedAt ?? Date.now()),
+            timeMs: s.playMs,
             edelweiss: s.edelweiss.length,
           });
         }
@@ -519,10 +550,17 @@ export const useMountainStore = create<MountainState>()(
 
       buildTent: () => {
         const s = get();
+        const now = Date.now();
+        // Cooldown 5 dtk — cegah tap/hold E spam heal tak terbatas
+        if (now - s.lastTentAt < 5000) {
+          set({ message: "⛺ Tenda masih didirikan — tunggu 5 detik.", messageAt: now });
+          return;
+        }
         const cp = CHECKPOINTS[s.checkpointIndex];
         set({
+          lastTentAt: now,
           message: `⛺ Tenda didirikan di ${cp.name}. Istirahat... (+10 stamina & suhu)`,
-          messageAt: Date.now(),
+          messageAt: now,
           stamina: clamp100(s.stamina + 10),
           suhu: clamp100(s.suhu + 10),
         });
@@ -544,6 +582,7 @@ export const useMountainStore = create<MountainState>()(
         weather: s.weather,
         timeOfDay: s.timeOfDay,
         startedAt: s.startedAt,
+        playMs: s.playMs,
         edits: s.edits,
         selectedBlock: s.selectedBlock,
         muted: s.muted,

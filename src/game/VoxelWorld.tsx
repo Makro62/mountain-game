@@ -41,7 +41,8 @@ export function VoxelWorld() {
   const { columns, waters } = useMemo(() => {
     const cols: Col[] = [];
     const wts: Array<{ x: number; y: number; z: number }> = [];
-    const half = Math.floor(WORLD_BOUND / BLOCK);
+    // ceil: floor(195/2)=97 melewatkan kolom −98 (x/z ∈ [−196,−194)) → tanah hilang di tepi barat/selatan
+    const half = Math.ceil(WORLD_BOUND / BLOCK);
     for (let bx = -half; bx <= half; bx++) {
       for (let bz = -half; bz <= half; bz++) {
         const [x, z] = blockToWorld(bx, bz);

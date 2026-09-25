@@ -9,10 +9,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --port 5174",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint .",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",

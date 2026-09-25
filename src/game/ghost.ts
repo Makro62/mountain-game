@@ -11,13 +11,21 @@
  */
 
 export const GHOST_KEY = "mountain-game-ghost";
+export const GHOST_KEY_HARIAN = "mountain-game-ghost-harian";
+
+export type GhostMode = "standar" | "harian";
+
+/** Slot ghost terpisah per mode — ghost harian tidak menimpa ghost standar. */
+export function ghostKeyFor(mode: GhostMode): string {
+  return mode === "harian" ? GHOST_KEY_HARIAN : GHOST_KEY;
+}
 
 const MAX_POINTS = 1200;
 const RECORD_INTERVAL = 0.5;
 
 export interface GhostSave {
   seed: number;
-  mode: "standar" | "harian";
+  mode: GhostMode;
   timeMs: number;
   edelweiss: number;
   /** Flat [tDetik, x, y, z, ...] ter-round 1 desimal. */
@@ -71,9 +79,9 @@ export function ghostDistance(): number {
   return d;
 }
 
-export function loadGhost(): GhostSave | null {
+export function loadGhost(mode: GhostMode = "standar"): GhostSave | null {
   try {
-    const raw = localStorage.getItem(GHOST_KEY);
+    const raw = localStorage.getItem(ghostKeyFor(mode));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as GhostSave;
     if (!parsed || !Array.isArray(parsed.points) || parsed.points.length < 8) return null;
@@ -83,14 +91,14 @@ export function loadGhost(): GhostSave | null {
   }
 }
 
-/** Simpan buffer sebagai ghost bila lebih cepat dari ghost tersimpan. */
-export function saveGhostIfBest(meta: { seed: number; mode: "standar" | "harian"; timeMs: number; edelweiss: number }): boolean {
+/** Simpan buffer sebagai ghost bila lebih cepat dari ghost tersimpan (per mode). */
+export function saveGhostIfBest(meta: { seed: number; mode: GhostMode; timeMs: number; edelweiss: number }): boolean {
   if (buffer.length < 8) return false;
-  const existing = loadGhost();
+  const existing = loadGhost(meta.mode);
   if (existing && existing.timeMs <= meta.timeMs) return false;
   const save: GhostSave = { ...meta, points: ghostPoints() };
   try {
-    localStorage.setItem(GHOST_KEY, JSON.stringify(save));
+    localStorage.setItem(ghostKeyFor(meta.mode), JSON.stringify(save));
     return true;
   } catch {
     return false;
@@ -100,6 +108,7 @@ export function saveGhostIfBest(meta: { seed: number; mode: "standar" | "harian"
 export function clearGhost(): void {
   try {
     localStorage.removeItem(GHOST_KEY);
+    localStorage.removeItem(GHOST_KEY_HARIAN);
   } catch {
     /* abaikan */
   }

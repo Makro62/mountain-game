@@ -21,7 +21,7 @@ import {
 import { BLOCK, PLACEABLE_BLOCKS, getVoxelTop, topBlockType } from "./voxel";
 import { useMountainStore } from "./store";
 import { playerState } from "./playerRef";
-import { playCheckpoint, playLose, playNote, playPickup, playShutter, playStep, playTent, playWin, updateWind, type Surface } from "./audio";
+import { playCheckpoint, playLose, playNote, playPickup, playShutter, playStep, playTent, playWin, stopWind, updateWind, type Surface } from "./audio";
 import { activeLootIds } from "./expedition";
 import { ghostRecord } from "./ghost";
 import { photoTargets } from "./Animals";
@@ -65,9 +65,11 @@ export function Player() {
   const prevCheckpoint = useRef(0);
   const prevScreen = useRef("playing");
   const seed = useMountainStore((s) => s.seed);
+  const runId = useMountainStore((s) => s.runId);
   const activeLoot = useMemo(() => new Set(activeLootIds(seed)), [seed]);
 
   // Init dari save (store menyimpan posisi MATA → kaki = mata - 1.7, snap ke voxel)
+  // runId naik saat startNew/continue → re-snap posisi ke spawn/checkpoint (retry benar-benar pindah)
   useEffect(() => {
     const st0 = useMountainStore.getState();
     const p = st0.playerPos;
@@ -89,7 +91,11 @@ export function Player() {
     camera.lookAt(p[0], p[1], p[2]);
     prevCheckpoint.current = useMountainStore.getState().checkpointIndex;
     prevScreen.current = useMountainStore.getState().screen;
-  }, [camera]);
+    syncTimer.current = 0;
+  }, [camera, runId]);
+
+  // Matikan angin saat scene unmount (kembali ke menu)
+  useEffect(() => () => stopWind(), []);
 
   // Input keyboard (WASD + panah)
   useEffect(() => {
@@ -103,6 +109,8 @@ export function Player() {
         e.preventDefault();
       }
       keys.current.add(e.code);
+      // Key-repeat OS: tanpa ini, hold 1/2/3/4 habiskan inventory & hold E spam tenda
+      if (e.repeat) return;
       if (st.screen !== "playing") return;
       if (e.code === "Digit1") st.useItem("bekal");
       if (e.code === "Digit2") st.useItem("jaket");
@@ -229,23 +237,31 @@ export function Player() {
 
   useFrame((_state, rawDelta) => {
     const st = useMountainStore.getState();
-    if (st.screen !== "playing") return;
-    if (st.openNote) return;
-    const dt = Math.min(rawDelta, 0.1);
 
-    // Efek transisi checkpoint / menang / kalah
-    const screenNow: string = st.screen;
+    // Efek transisi screen/checkpoint — DI ATAS guard "playing" agar jingle menang/kalah terdengar
+    if (st.screen !== prevScreen.current) {
+      const prevScreenNow = prevScreen.current;
+      prevScreen.current = st.screen;
+      if (st.screen === "lost") playLose();
+      else if (st.screen === "won") playWin();
+      else if (st.screen === "playing") {
+        // Masuk (ulang/lanjut) → sync checkpoint supaya tidak ada chime hantu
+        prevCheckpoint.current = st.checkpointIndex;
+      }
+      // Angin dihentikan SEKALI saat keluar "playing" — memanggil setTargetAtTime
+      // tiap frame (guard di bawah) membanjiri AudioParam dengan automation event.
+      if (prevScreenNow === "playing" && st.screen !== "playing") stopWind();
+    }
     if (st.checkpointIndex !== prevCheckpoint.current) {
       prevCheckpoint.current = st.checkpointIndex;
       const cp = CHECKPOINTS[st.checkpointIndex];
-      if (cp && cp.id === "puncak") playWin();
-      else playCheckpoint();
+      // Puncak ditangani lewat transisi screen "won" (hindari dobel playWin)
+      if (cp && cp.id !== "puncak") playCheckpoint();
     }
-    if (screenNow !== prevScreen.current) {
-      prevScreen.current = screenNow;
-      if (screenNow === "lost") playLose();
-      if (screenNow === "won") playWin();
-    }
+
+    if (st.screen !== "playing") return;
+    if (st.openNote) return;
+    const dt = Math.min(rawDelta, 0.1);
 
     const k = keys.current;
     const fwd =

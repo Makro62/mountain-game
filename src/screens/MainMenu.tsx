@@ -182,7 +182,7 @@ export function MainMenu() {
                   <span className="font-mono text-[10px] font-bold text-white/85">{todayCode} • sama untuk semua</span>
                 </button>
               </div>
-              {startedAt && (
+              {startedAt && checkpointIndex < CHECKPOINTS.length - 1 && (
                 <button
                   onClick={continueGame}
                   className="btn-game flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-slate-600 to-slate-700 px-5 py-3 text-sm font-black text-white shadow-[0_10px_30px_rgba(100,116,139,0.3)]"

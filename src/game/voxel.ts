@@ -119,9 +119,9 @@ export function blockTint(type: BlockType, bx: number, bz: number): THREE.Color 
   return _c.clone();
 }
 
-/** Jumlah kolom per sisi untuk loop render. */
+/** Jumlah kolom per sisi untuk loop render (ceil agar batas −195 ikut tercakup). */
 export function voxelGridRange(): number[] {
-  const half = Math.floor(WORLD_BOUND / BLOCK);
+  const half = Math.ceil(WORLD_BOUND / BLOCK);
   const out: number[] = [];
   for (let b = -half; b <= half; b++) out.push(b);
   return out;

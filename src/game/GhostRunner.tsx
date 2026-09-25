@@ -21,13 +21,11 @@ export function GhostRunner() {
   const ghostEnabled = useMountainStore((s) => s.ghostEnabled);
   const startedAt = useMountainStore((s) => s.startedAt);
   const group = useRef<THREE.Group>(null);
-  const elapsed = useRef(0);
   const [ghost, setGhost] = useState<GhostSave | null>(null);
 
   useEffect(() => {
-    elapsed.current = 0;
-    setGhost(loadGhost());
-  }, [startedAt]);
+    setGhost(loadGhost(mode));
+  }, [startedAt, mode]);
 
   const eligible = ghostEligible(ghost, mode, seed) && ghostEnabled;
 
@@ -35,13 +33,15 @@ export function GhostRunner() {
     if (!eligible || !ghost || screen !== "playing") return;
     const dt = Math.min(rawDt, 0.1);
     if (useMountainStore.getState().openNote) return;
-    elapsed.current += dt;
-    const pos = ghostPosAt(ghost.points, elapsed.current);
+    // Driver = playMs (waktu main aktif): sama dengan yang dipakai HUD, rekaman
+    // ghost, dan rank → continue dari checkpoint tetap sinkron dengan ghost.
+    const elapsed = useMountainStore.getState().playMs / 1000;
+    const pos = ghostPosAt(ghost.points, elapsed);
     if (pos && group.current) {
       group.current.visible = true;
       const gy = Math.max(pos[1], getVoxelTop(pos[0], pos[2]));
       group.current.position.set(pos[0], gy, pos[2]);
-      const ahead = ghostPosAt(ghost.points, elapsed.current + 0.2);
+      const ahead = ghostPosAt(ghost.points, elapsed + 0.2);
       if (ahead) {
         const dx = ahead[0] - pos[0];
         const dz = ahead[2] - pos[2];

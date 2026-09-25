@@ -7,11 +7,17 @@ let ctx: AudioContext | null = null;
 let windGain: GainNode | null = null;
 let windFilter: BiquadFilterNode | null = null;
 let lastStep = 0;
+/** Cache mute — di-sync dari store supaya tidak parse localStorage tiap frame. */
+let mutedFlag: boolean | undefined;
+
+export function syncMute(v: boolean): void {
+  mutedFlag = v;
+}
 
 function ensureCtx(): AudioContext | null {
   try {
     if (ctx) {
-      if (ctx.state === "suspended") void ctx.resume();
+      if (ctx.state === "suspended") void ctx.resume().catch(() => {});
       return ctx;
     }
     const AC = window.AudioContext;
@@ -24,14 +30,15 @@ function ensureCtx(): AudioContext | null {
 }
 
 function muted(): boolean {
+  if (mutedFlag !== undefined) return mutedFlag;
   try {
     const raw = localStorage.getItem("mountain-game-storage");
-    if (!raw) return false;
-    const parsed = JSON.parse(raw) as { state?: { muted?: boolean } };
-    return parsed.state?.muted === true;
+    const parsed = raw ? (JSON.parse(raw) as { state?: { muted?: boolean } }) : null;
+    mutedFlag = parsed?.state?.muted === true;
   } catch {
-    return false;
+    mutedFlag = false;
   }
+  return mutedFlag;
 }
 
 function tone(freqFrom: number, freqTo: number, dur: number, type: OscillatorType, gain = 0.15, when = 0): void {
@@ -256,5 +263,16 @@ export function updateWind(altitude: number, storminess: number): void {
     windGain.gain.setTargetAtTime(target, ac.currentTime, 0.5);
   } catch {
     /* abaikan */
+  }
+}
+
+/** Matikan loop angin (pause/menu) — gain di-ramp ke 0. */
+export function stopWind(): void {
+  if (!windGain) return;
+  try {
+    if (ctx) windGain.gain.setTargetAtTime(0, ctx.currentTime, 0.12);
+    else windGain.gain.value = 0;
+  } catch {
+    windGain.gain.value = 0;
   }
 }
